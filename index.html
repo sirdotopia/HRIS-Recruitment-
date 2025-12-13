@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acrow Egypt | Integrated HRIS & ATS (With Database)</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* --- CSS: Enterprise Styling --- */
+        :root {
+            --primary: #003366; /* Deep Corporate Blue */
+            --accent: #e31e24;  /* Acrow Red */
+            --bg-light: #f4f7f6;
+            --sidebar-width: 260px;
+            --border: #e0e0e0;
+        }
+
+        body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; background: var(--bg-light); display: flex; height: 100vh; overflow: hidden; }
+        
+        /* Sidebar */
+        .sidebar { width: var(--sidebar-width); background: #1a1a2e; color: white; display: flex; flex-direction: column; padding: 20px 0; }
+        .brand { padding: 0 20px 20px; font-size: 1.2rem; font-weight: bold; border-bottom: 1px solid #333; margin-bottom: 10px; }
+        .brand span { color: var(--accent); }
+        .menu-item { padding: 12px 20px; cursor: pointer; transition: 0.2s; color: #a0a0a0; display: flex; align-items: center; gap: 10px; }
+        .menu-item:hover, .menu-item.active { background: var(--primary); color: white; border-left: 4px solid var(--accent); }
+        
+        /* Main Content */
+        .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .top-bar { background: white; padding: 15px 30px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .content-area { padding: 20px; overflow-y: auto; flex: 1; }
+
+        /* Components */
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid var(--border); }
+        .card-header { font-weight: bold; font-size: 1.1rem; margin-bottom: 15px; display: flex; justify-content: space-between; color: var(--primary); border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; }
+        
+        /* Forms */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
+        
+        .form-group label { display: block; font-size: 0.85rem; font-weight: 600; color: #555; margin-bottom: 5px; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; box-sizing: border-box; }
+        .form-group input:focus { border-color: var(--primary); outline: none; }
+
+        /* Buttons & Badges */
+        .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: 0.2s; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        .badge { padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; color: white; }
+        .bg-open { background: #28a745; }
+        .bg-hold { background: #ffc107; color: black; }
+        .bg-closed { background: #6c757d; }
+
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th { text-align: left; background: #f8f9fa; padding: 12px; color: #555; border-bottom: 2px solid #ddd; }
+        td { padding: 12px; border-bottom: 1px solid #eee; }
+        
+        /* Utility */
+        .hidden { display: none; }
+        .audit-line { font-family: monospace; font-size: 0.8rem; border-bottom: 1px solid #333; padding: 5px; color: #0f0; background: #000; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="brand">ACROW <span>HRIS</span></div>
+        <div class="menu-item active" onclick="nav('dashboard')"><i class="fas fa-chart-line"></i> Dashboard</div>
+        <div class="menu-item" onclick="nav('requisitions')"><i class="fas fa-briefcase"></i> Requisitions</div>
+        <div class="menu-item" onclick="nav('ats')"><i class="fas fa-users"></i> ATS & Pipeline</div>
+        <div class="menu-item" onclick="nav('employees')"><i class="fas fa-id-card"></i> Employee Central</div>
+        <div class="menu-item" onclick="nav('audit')"><i class="fas fa-shield-alt"></i> Audit Log</div>
+        <div class="menu-item" style="margin-top:auto; background:#333;" onclick="resetSystem()"><i class="fas fa-trash"></i> Reset System</div>
+    </div>
+
+    <div class="main">
+        <div class="top-bar">
+            <h3>Talent Management Module</h3>
+            <div>
+                <i class="fas fa-user-circle"></i> Hassan Adel (Admin)
+                <span class="badge bg-open" id="connection-status">Online</span>
+            </div>
+        </div>
+
+        <div class="content-area">
+            
+            <div id="dashboard" class="view">
+                <div class="grid-3">
+                    <div class="card">
+                        <div class="card-header">Open Requisitions</div>
+                        <h1 id="dash-open-reqs">0</h1>
+                        <small>Avg Time to Fill: 18 Days</small>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">Active Candidates</div>
+                        <h1 id="dash-active-cand">0</h1>
+                        <small>In pipeline</small>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">Offers Pending</div>
+                        <h1 id="dash-offers">0</h1>
+                        <small>Awaiting Acceptance</small>
+                    </div>
+                </div>
+            </div>
+
+            <div id="requisitions" class="view hidden">
+                <div class="card">
+                    <div class="card-header">
+                        Create New Job Requisition
+                        <button class="btn btn-outline" onclick="fillDemoReq()">Auto-Fill Demo</button>
+                    </div>
+                    <form id="reqForm">
+                        <div class="grid-3">
+                            <div class="form-group">
+                                <label>Job Title</label>
+                                <input type="text" id="reqTitle" placeholder="e.g. CNC Operator">
+                            </div>
+                            <div class="form-group">
+                                <label>Department</label>
+                                <select id="reqDept">
+                                    <option value="Production - Plant A">Production - Plant A</option>
+                                    <option value="Logistics - Warehouse">Logistics - Warehouse</option>
+                                    <option value="Engineering - HQ">Engineering - HQ</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Type</label>
+                                <select id="reqType">
+                                    <option value="FT">Full-Time</option>
+                                    <option value="Contract">Contract</option>
+                                    <option value="Temp">Temp</option>
+                                </select>
+                            </div>
+                        </div>
+                        <br>
+                        <div class="grid-3">
+                            <div class="form-group">
+                                <label>Shift</label>
+                                <select id="reqShift">
+                                    <option value="Day">Day Shift</option>
+                                    <option value="Night">Night Shift</option>
+                                    <option value="Rotational">Rotational</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Reason</label>
+                                <select id="reqReason">
+                                    <option value="New Hire">New Hire</option>
+                                    <option value="Replacement">Replacement</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Budget Flag</label>
+                                <select id="reqBudget">
+                                    <option value="Approved">Approved Budget</option>
+                                    <option value="Exceptional">Exceptional</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin-top:10px;">
+                            <label>JD & Skills</label>
+                            <textarea id="reqJD" rows="2" placeholder="Skills, safety certs..."></textarea>
+                        </div>
+                        <div style="text-align: right; margin-top:10px;">
+                            <button type="button" class="btn btn-primary" onclick="createRequisition()">Submit Requisition</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">Requisition List</div>
+                    <table id="reqTable">
+                        <thead>
+                            <tr><th>Req ID</th><th>Title</th><th>Dept</th><th>Shift</th><th>Status</th><th>Priority</th></tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="ats" class="view hidden">
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-header">1. Add Candidate</div>
+                        <div class="form-group">
+                            <label>Link to Req ID</label>
+                            <select id="candReqLink"></select>
+                        </div>
+                        <div class="grid-2">
+                            <div class="form-group"><label>Candidate Name</label><input type="text" id="candName"></div>
+                            <div class="form-group"><label>Source</label><select id="candSource"><option>LinkedIn</option><option>Agency</option></select></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Score (0-100)</label>
+                            <input type="number" id="candScore" placeholder="Test Result">
+                        </div>
+                        <button class="btn btn-success" onclick="addCandidate()">Create Profile</button>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">2. Interview Feedback</div>
+                        <div class="form-group">
+                            <label>Select Candidate</label>
+                            <select id="evalCandSelect"></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Panel Rating</label>
+                            <div class="grid-3">
+                                <input type="number" placeholder="Tech (1-5)" id="rateTech">
+                                <input type="number" placeholder="Cult (1-5)" id="rateCult">
+                                <input type="number" placeholder="Comm (1-5)" id="rateComm">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="submitEval()">Save Assessment</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">Candidate Pipeline</div>
+                    <table id="candTable">
+                        <thead>
+                            <tr><th>ID</th><th>Name</th><th>Applied For</th><th>Stage</th><th>Score</th><th>Action</th></tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="employees" class="view hidden">
+                <div class="card">
+                    <div class="card-header">Employee Master Data</div>
+                    <table id="empTable">
+                        <thead>
+                            <tr><th>Emp ID</th><th>Name</th><th>Job Title</th><th>Dept</th><th>Manager</th><th>Start Date</th></tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="audit" class="view hidden">
+                <div class="card" style="background:#111; color:#0f0; height:400px; overflow-y:scroll;">
+                    <div class="card-header" style="background:#222; color:#fff; border:none;">System Audit Log</div>
+                    <div id="auditLogContainer"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- DATA STORE & INITIALIZATION ---
+        // Try to load from LocalStorage, otherwise use defaults
+        let DB = JSON.parse(localStorage.getItem('AcrowHRIS_DB')) || {
+            reqs: [],
+            cands: [],
+            employees: [],
+            logs: []
+        };
+
+        // Save Helper
+        function saveData() {
+            localStorage.setItem('AcrowHRIS_DB', JSON.stringify(DB));
+        }
+
+        // --- NAVIGATION ---
+        function nav(id) {
+            document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+            document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            updateStats();
+        }
+
+        // --- LOGGING ---
+        function log(action, user = "Hassan Adel") {
+            const time = new Date().toISOString().replace('T', ' ').substring(0, 19);
+            const entry = `[${time}] [USER:${user}] ${action}`;
+            DB.logs.push(entry);
+            saveData();
+            renderLogs();
+        }
+        
+        function renderLogs() {
+            const container = document.getElementById('auditLogContainer');
+            container.innerHTML = ''; 
+            DB.logs.slice().reverse().forEach(entry => {
+                const div = document.createElement('div');
+                div.className = 'audit-line';
+                div.innerText = entry;
+                container.appendChild(div);
+            });
+        }
+
+        // --- 1. REQUISITIONS ---
+        function createRequisition() {
+            const title = document.getElementById('reqTitle').value;
+            if(!title) return alert("Title required");
+
+            const req = {
+                id: "REQ-" + (1000 + DB.reqs.length),
+                title: title,
+                dept: document.getElementById('reqDept').value,
+                type: document.getElementById('reqType').value,
+                shift: document.getElementById('reqShift').value,
+                reason: document.getElementById('reqReason').value,
+                budget: document.getElementById('reqBudget').value,
+                jd: document.getElementById('reqJD').value,
+                manager: "Eng. Ahmed (Plant Mgr)",
+                status: "Open"
+            };
+
+            DB.reqs.push(req);
+            saveData();
+            log(`Created Requisition ${req.id} for ${req.title}`);
+            
+            renderReqTable();
+            updateDropdowns();
+            alert("Requisition Saved & Sent to Workflow");
+            document.getElementById('reqForm').reset();
+        }
+
+        function renderReqTable() {
+            const tbody = document.querySelector('#reqTable tbody');
+            tbody.innerHTML = '';
+            DB.reqs.forEach(r => {
+                const tr = `<tr>
+                    <td><strong>${r.id}</strong></td>
+                    <td>${r.title}</td>
+                    <td>${r.dept}</td>
+                    <td>${r.shift}</td>
+                    <td><span class="badge ${r.status==='Open'?'bg-open':'bg-closed'}">${r.status}</span></td>
+                    <td>High</td>
+                </tr>`;
+                tbody.innerHTML += tr;
+            });
+        }
+
+        // --- 2. ATS MODULE ---
+        function addCandidate() {
+            const reqId = document.getElementById('candReqLink').value;
+            const name = document.getElementById('candName').value;
+            if(!name || !reqId) return alert("Missing Data");
+
+            const req = DB.reqs.find(r => r.id === reqId);
+
+            const cand = {
+                id: "CAND-" + (500 + DB.cands.length),
+                reqId: reqId,
+                jobTitle: req.title, 
+                name: name,
+                source: document.getElementById('candSource').value,
+                score: document.getElementById('candScore').value,
+                stage: "Screening",
+                ratings: {}
+            };
+
+            DB.cands.push(cand);
+            saveData();
+            log(`New Candidate: ${name} applied for ${reqId}`);
+            renderCandTable();
+            updateDropdowns();
+        }
+
+        function updateDropdowns() {
+            const sel = document.getElementById('candReqLink');
+            sel.innerHTML = '';
+            DB.reqs.filter(r => r.status === 'Open').forEach(r => {
+                sel.innerHTML += `<option value="${r.id}">${r.id} - ${r.title}</option>`;
+            });
+
+            const sel2 = document.getElementById('evalCandSelect');
+            sel2.innerHTML = '';
+            DB.cands.filter(c => c.stage !== 'Hired').forEach(c => {
+                sel2.innerHTML += `<option value="${c.id}">${c.name} (${c.stage})</option>`;
+            });
+        }
+
+        function submitEval() {
+            const candId = document.getElementById('evalCandSelect').value;
+            if(!candId) return;
+            
+            const cand = DB.cands.find(x => x.id === candId);
+            cand.ratings = { tech: document.getElementById('rateTech').value };
+            cand.stage = "Interview Pass";
+            
+            saveData();
+            log(`Evaluated ${cand.name} - Moved to Pass`);
+            renderCandTable();
+            alert("Assessment Saved");
+        }
+
+        function renderCandTable() {
+            const tbody = document.querySelector('#candTable tbody');
+            tbody.innerHTML = '';
+            DB.cands.forEach(c => {
+                let actionBtn = `<button class="btn btn-sm btn-outline" onclick="advanceStage('${c.id}')">Next Stage</button>`;
+                if(c.stage === 'Offer Sent') {
+                    actionBtn = `<button class="btn btn-sm btn-success" onclick="hireProcess('${c.id}')">HIRE</button>`;
+                } else if (c.stage === 'Hired') {
+                    actionBtn = `<span style="color:green"><i class="fas fa-check"></i> Hired</span>`;
+                }
+
+                tbody.innerHTML += `<tr>
+                    <td>${c.id}</td>
+                    <td>${c.name}</td>
+                    <td>${c.jobTitle}</td>
+                    <td><span class="badge ${c.stage==='Hired'?'bg-open':'bg-hold'}">${c.stage}</span></td>
+                    <td>${c.score}</td>
+                    <td>${actionBtn}</td>
+                </tr>`;
+            });
+        }
+
+        function advanceStage(id) {
+            const c = DB.cands.find(x => x.id === id);
+            const stages = ["Screening", "Interview", "Offer Sent", "Hired"];
+            let currIdx = stages.indexOf(c.stage);
+            if(currIdx < 2) {
+                c.stage = stages[currIdx + 1];
+                saveData();
+                renderCandTable();
+                log(`Moved ${c.name} to ${c.stage}`);
+            }
+        }
+
+        // --- 3. HIRING ---
+        function hireProcess(candId) {
+            const c = DB.cands.find(x => x.id === candId);
+            const req = DB.reqs.find(x => x.id === c.reqId);
+
+            if(!confirm(`Hire ${c.name}? This will map fields to Employee Central.`)) return;
+
+            c.stage = "Hired";
+            req.status = "Filled/Closed";
+
+            const newEmp = {
+                id: "EMP-" + (2000 + DB.employees.length),
+                name: c.name,
+                title: req.title,
+                dept: req.dept,
+                manager: req.manager,
+                startDate: new Date().toISOString().split('T')[0]
+            };
+
+            DB.employees.push(newEmp);
+            saveData();
+            
+            log(`HIRED: ${c.name} mapped to ${newEmp.id}`);
+            
+            renderCandTable();
+            renderReqTable();
+            renderEmpTable();
+            updateStats();
+            
+            alert(`Hiring Complete! Employee ID: ${newEmp.id}`);
+        }
+
+        function renderEmpTable() {
+            const tbody = document.querySelector('#empTable tbody');
+            tbody.innerHTML = '';
+            DB.employees.forEach(e => {
+                tbody.innerHTML += `<tr>
+                    <td><strong>${e.id}</strong></td>
+                    <td>${e.name}</td>
+                    <td>${e.title}</td>
+                    <td>${e.dept}</td>
+                    <td>${e.manager}</td>
+                    <td>${e.startDate}</td>
+                </tr>`;
+            });
+        }
+
+        function updateStats() {
+            if(document.getElementById('dash-open-reqs')) {
+                document.getElementById('dash-open-reqs').innerText = DB.reqs.filter(r => r.status === 'Open').length;
+                document.getElementById('dash-active-cand').innerText = DB.cands.filter(c => c.stage !== 'Hired').length;
+                document.getElementById('dash-offers').innerText = DB.cands.filter(c => c.stage === 'Offer Sent').length;
+            }
+        }
+        
+        function fillDemoReq() {
+            document.getElementById('reqTitle').value = "Production Supervisor";
+            document.getElementById('reqJD').value = "Safety Cert required.";
+        }
+
+        // Reset for Demo
+        function resetSystem() {
+            if(confirm("Are you sure? This will delete all saved data.")) {
+                localStorage.removeItem('AcrowHRIS_DB');
+                location.reload();
+            }
+        }
+
+        // --- INIT ---
+        window.onload = function() {
+            renderReqTable();
+            renderCandTable();
+            renderEmpTable();
+            renderLogs();
+            updateStats();
+            updateDropdowns();
+            
+            if(DB.logs.length === 0) log("System Initialized.");
+        };
+    </script>
+</body>
+</html>
