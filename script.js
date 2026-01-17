@@ -18,6 +18,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         yearSelect.value = currentYear; 
     }
+    const refForm = document.getElementById('referralForm');
+    if (refForm) {
+        refForm.addEventListener('submit', handleReferralSubmit);
+    }
 
     // -----------------------------------------------------------
     // 2. ضبط الشهر الحالي تلقائياً
@@ -278,6 +282,7 @@ async function handleAddCandidate(e) {
     let filename = "";
     const fileInput = document.getElementById('cand-file');
     
+    // رفع ملف السيرة الذاتية (CV)
     if (fileInput && fileInput.files.length > 0) {
         const formData = new FormData();
         formData.append('file', fileInput.files[0]);
@@ -289,7 +294,9 @@ async function handleAddCandidate(e) {
     }
 
     const candData = {
-        id: 'CAND-' + Math.floor(Math.random() * 10000),
+        // ✅ التعديل هنا: استخدام Date.now() لضمان عدم تكرار الرقم نهائياً
+        id: 'CAND-' + Date.now(),
+        
         req_id: document.getElementById('cand-req-link').value,
         recruiter: document.getElementById('cand-recruiter').value,
         name: document.getElementById('cand-name').value,
@@ -306,21 +313,8 @@ async function handleAddCandidate(e) {
         notes: "", 
         rejection_reason: ""
     };
+    
     sendData('candidate', candData); 
-    e.target.reset();
-}
-
-function handleAddTraining(e) {
-    e.preventDefault();
-    const data = {
-        course_name: document.getElementById('train-name').value,
-        provider: document.getElementById('train-provider').value,
-        type: document.getElementById('train-type').value,
-        date: document.getElementById('train-date').value,
-        cost: document.getElementById('train-cost').value,
-        status: document.getElementById('train-status').value
-    };
-    sendData('training', data);
     e.target.reset();
 }
 
@@ -366,6 +360,9 @@ function handleReferralSubmit(e) {
 // ==========================================
 
 function renderPipeline() {
+// ✅ 1. تحديث الفلتر فوراً (بدون شروط) لضمان ظهور أي وظيفة جديدة
+    populateATSPositionFilter(); 
+
     const tbody = document.getElementById('pipeline-body');
     if (!tbody) return;
     tbody.innerHTML = '';
@@ -373,11 +370,6 @@ function renderPipeline() {
     // --- Filter Logic ---
     const positionFilterEl = document.getElementById('ats-filter-position');
     const selectedPosition = positionFilterEl ? positionFilterEl.value : 'All';
-
-    // Populate dropdown if empty
-    if (positionFilterEl && positionFilterEl.options.length <= 1) {
-        populateATSPositionFilter();
-    }
 
     let filteredCandidates = systemData.candidates;
 
@@ -474,20 +466,6 @@ function renderPipeline() {
     }, 100);
 }
 
-// --- NEW: Helper to fill the filter dropdown ---
-function populateATSPositionFilter() {
-    const select = document.getElementById('ats-filter-position');
-    if (!select) return;
-
-    // Get all unique job titles from Requisitions
-    const titles = [...new Set(systemData.requisitions.map(r => r.title))].sort();
-    
-    // Reset and add options
-    select.innerHTML = '<option value="All">All Positions</option>';
-    titles.forEach(title => {
-        if(title) select.innerHTML += `<option value="${title}">${title}</option>`;
-    });
-}
 
 function renderReferrals() {
     const tbody = document.getElementById('referral-body');
@@ -1457,15 +1435,39 @@ function getStatusClass(status) {
     return 'screen'; // Default gray
 }
 
-// --- Helper: Populate Position Filter (Already added previously, ensuring it exists) ---
 function populateATSPositionFilter() {
     const select = document.getElementById('ats-filter-position');
     if (!select) return;
-    const titles = [...new Set(systemData.requisitions.map(r => r.title))].sort();
-    select.innerHTML = '<option value="All">All Positions</option>';
-    titles.forEach(title => {
-        if(title) select.innerHTML += `<option value="${title}">${title}</option>`;
+
+    // 1. نحفظ القيمة المختارة حالياً
+    const currentSelection = select.value;
+
+    // 2. جلب المسميات من مصدرين (الوظائف + المرشحين) لضمان ظهور كل شيء
+    const reqTitles = systemData.requisitions.map(r => r.title);
+    
+    const candTitles = systemData.candidates.map(c => {
+        const job = systemData.requisitions.find(r => r.req_id === c.req_id);
+        return job ? job.title : null; 
     });
+
+    // 3. دمج المسميات وحذف التكرار
+    const allTitles = [...reqTitles, ...candTitles];
+    const uniqueTitles = [...new Set(allTitles)].filter(t => t && t.trim() !== "");
+
+    // 4. إعادة بناء القائمة
+    select.innerHTML = '<option value="All">All Positions</option>';
+    
+    uniqueTitles.sort().forEach(title => {
+        const option = document.createElement('option');
+        option.value = title;
+        option.innerText = title;
+        select.appendChild(option);
+    });
+
+    // 5. استعادة الاختيار السابق
+    if (uniqueTitles.includes(currentSelection)) {
+        select.value = currentSelection;
+    }
 }
 // ... (باقي أكواد الشارتات في الأعلى)
 
