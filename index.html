@@ -3,510 +3,678 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acrow Egypt | Integrated HRIS & ATS (With Database)</title>
+    <title>Acrow HRIS & ATS Module</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <style>
-        /* --- CSS: Enterprise Styling --- */
-        :root {
-            --primary: #003366; /* Deep Corporate Blue */
-            --accent: #e31e24;  /* Acrow Red */
-            --bg-light: #f4f7f6;
-            --sidebar-width: 260px;
-            --border: #e0e0e0;
-        }
-
-        body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; background: var(--bg-light); display: flex; height: 100vh; overflow: hidden; }
+        /* --- Custom Typography --- */
+        .navbar-brand { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; letter-spacing: 0.5px; }
         
-        /* Sidebar */
-        .sidebar { width: var(--sidebar-width); background: #1a1a2e; color: white; display: flex; flex-direction: column; padding: 20px 0; }
-        .brand { padding: 0 20px 20px; font-size: 1.2rem; font-weight: bold; border-bottom: 1px solid #333; margin-bottom: 10px; }
-        .brand span { color: var(--accent); }
-        .menu-item { padding: 12px 20px; cursor: pointer; transition: 0.2s; color: #a0a0a0; display: flex; align-items: center; gap: 10px; }
-        .menu-item:hover, .menu-item.active { background: var(--primary); color: white; border-left: 4px solid var(--accent); }
-        
-        /* Main Content */
-        .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        .top-bar { background: white; padding: 15px 30px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-        .content-area { padding: 20px; overflow-y: auto; flex: 1; }
+        /* --- Modern Nav Pills Styling --- */
+        .nav-pills .nav-link { color: #555; font-weight: 600; border-radius: 50px; padding: 10px 20px; margin-right: 10px; transition: all 0.3s ease; }
+        .nav-pills .nav-link:hover { background-color: #e9ecef; color: #1B154A; }
+        .nav-pills .nav-link.active { background-color: #1B154A !important; color: #fff !important; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
 
-        /* Components */
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid var(--border); }
-        .card-header { font-weight: bold; font-size: 1.1rem; margin-bottom: 15px; display: flex; justify-content: space-between; color: var(--primary); border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; }
-        
-        /* Forms */
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
-        
-        .form-group label { display: block; font-size: 0.85rem; font-weight: 600; color: #555; margin-bottom: 5px; }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; box-sizing: border-box; }
-        .form-group input:focus { border-color: var(--primary); outline: none; }
-
-        /* Buttons & Badges */
-        .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: 0.2s; }
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-success { background: #28a745; color: white; }
-        .btn-danger { background: #dc3545; color: white; }
-        .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
-        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
-
-        .badge { padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; color: white; }
-        .bg-open { background: #28a745; }
-        .bg-hold { background: #ffc107; color: black; }
-        .bg-closed { background: #6c757d; }
-
-        /* Tables */
-        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-        th { text-align: left; background: #f8f9fa; padding: 12px; color: #555; border-bottom: 2px solid #ddd; }
-        td { padding: 12px; border-bottom: 1px solid #eee; }
-        
-        /* Utility */
-        .hidden { display: none; }
-        .audit-line { font-family: monospace; font-size: 0.8rem; border-bottom: 1px solid #333; padding: 5px; color: #0f0; background: #000; }
+        /* --- SLA & Status Indicators --- */
+        .sla-badge { font-size: 0.65rem; font-weight: 700; padding: 3px 8px; border-radius: 12px; text-transform: uppercase; }
+        .sla-on-track { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
+        .sla-overdue { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
     </style>
 </head>
-<body>
+<body class="bg-light">
 
-    <div class="sidebar">
-        <div class="brand">ACROW <span>HRIS</span></div>
-        <div class="menu-item active" onclick="nav('dashboard')"><i class="fas fa-chart-line"></i> Dashboard</div>
-        <div class="menu-item" onclick="nav('requisitions')"><i class="fas fa-briefcase"></i> Requisitions</div>
-        <div class="menu-item" onclick="nav('ats')"><i class="fas fa-users"></i> ATS & Pipeline</div>
-        <div class="menu-item" onclick="nav('employees')"><i class="fas fa-id-card"></i> Employee Central</div>
-        <div class="menu-item" onclick="nav('audit')"><i class="fas fa-shield-alt"></i> Audit Log</div>
-        <div class="menu-item" style="margin-top:auto; background:#333;" onclick="resetSystem()"><i class="fas fa-trash"></i> Reset System</div>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark-blue shadow-sm py-3">
+        <div class="container-fluid">
+            <a class="navbar-brand d-flex align-items-center" href="#">
+                <div class="bg-white rounded-circle p-2 d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                    <i class="fas fa-users-cog text-dark-blue fs-5"></i>
+                </div>
+                <div class="d-flex flex-column flex-md-row align-items-start align-items-md-baseline">
+                    <span class="fw-bold fs-4 text-uppercase tracking-wide">ACROW HRIS</span>
+                    <span class="d-none d-md-inline mx-2 text-white-50">|</span>
+                    <span class="fs-6 text-light fw-light opacity-75">Talent Management Section</span>
+                </div>
+            </a>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        
+        <ul class="nav nav-pills mb-4 bg-white p-2 rounded shadow-sm d-inline-flex" id="hrisTab" role="tablist">
+            <li class="nav-item"><button class="nav-link active" id="dashboard-tab" data-bs-toggle="pill" data-bs-target="#dashboard"><i class="fas fa-chart-line me-2"></i>Dashboard</button></li>
+            <li class="nav-item"><button class="nav-link" id="req-tab" data-bs-toggle="pill" data-bs-target="#requisition"><i class="fas fa-briefcase me-2"></i>Job Requisition</button></li>
+            <li class="nav-item"><button class="nav-link" id="ats-tab" data-bs-toggle="pill" data-bs-target="#ats"><i class="fas fa-user-check me-2"></i>ATS & Pipeline</button></li>
+            <li class="nav-item"><button class="nav-link" id="ref-tab" data-bs-toggle="pill" data-bs-target="#referral"><i class="fas fa-handshake me-2"></i>Referrals</button></li>
+            <li class="nav-item"><button class="nav-link" id="emp-tab" data-bs-toggle="pill" data-bs-target="#employee"><i class="fas fa-users me-2"></i>Employee Master Data</button></li>
+            <li class="nav-item"><button class="nav-link" id="lnd-tab" data-bs-toggle="pill" data-bs-target="#lnd"><i class="fas fa-graduation-cap me-2"></i>L&D / Training</button></li>
+            <li class="nav-item"><button class="nav-link" id="perf-tab" data-bs-toggle="pill" data-bs-target="#performance"><i class="fas fa-tachometer-alt me-2"></i>Performance</button></li>
+            <li class="nav-item">
+                <button class="nav-link" id="pos-status-tab" data-bs-toggle="pill" data-bs-target="#pos-status" onclick="renderPositionsStatus()">
+        <i class="fas fa-list-alt me-2"></i>Positions Status
+    </button>
+            </li>
+            <li class="nav-item"><button class="nav-link" id="audit-tab" data-bs-toggle="pill" data-bs-target="#audit"><i class="fas fa-shield-alt me-2"></i>Audit & Compliance</button></li>
+        </ul>
+
+        <div class="tab-content p-4 bg-white border border-top-0 rounded shadow-sm" id="hrisTabContent">
+            
+            <div class="tab-pane fade show active" id="dashboard">
+                
+<div class="filter-bar-container bg-white p-2 rounded-4 shadow-sm mb-4 border d-flex flex-wrap align-items-center justify-content-between gap-2">
+    
+    <div class="d-flex align-items-center gap-2 border-end pe-3">
+        <div class="position-relative">
+            <i class="fas fa-calendar-alt position-absolute text-muted" style="left: 12px; top: 50%; transform: translateY(-50%); font-size: 0.9rem;"></i>
+            <select id="filter-year" class="form-select border-0 bg-light rounded-pill ps-5 fw-bold text-dark-blue shadow-none" style="width: 110px;" onchange="renderDashboard()">
+                <option value="All">All Years</option>
+                <option value="2026">2026</option>
+                <option value="2025">2025</option>
+                <option value="2024">2024</option>
+            </select>
+        </div>
+        
+        <div class="position-relative">
+            <i class="fas fa-calendar-day position-absolute text-muted" style="left: 12px; top: 50%; transform: translateY(-50%); font-size: 0.9rem;"></i>
+            <select id="filter-month" class="form-select border-0 bg-light rounded-pill ps-5 fw-bold text-dark-blue shadow-none" style="width: 140px;" onchange="renderDashboard()">
+                <option value="All">All Months</option>
+                <option value="01">January</option>
+                <option value="02">February</option>
+                <option value="03">March</option>
+                <option value="04">April</option>
+                <option value="05">May</option>
+                <option value="06">June</option>
+                <option value="07">July</option>
+                <option value="08">August</option>
+                <option value="09">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+            </select>
+        </div>
     </div>
 
-    <div class="main">
-        <div class="top-bar">
-            <h3>Talent Management Module</h3>
-            <div>
-                <i class="fas fa-user-circle"></i> Hassan Adel (Admin)
-                <span class="badge bg-open" id="connection-status">Online</span>
-            </div>
+    <div class="d-flex align-items-center gap-2 flex-grow-1">
+        <div class="position-relative flex-grow-1">
+            <i class="fas fa-building position-absolute text-muted" style="left: 12px; top: 50%; transform: translateY(-50%); font-size: 0.9rem;"></i>
+            <select id="filter-dept" class="form-select border-0 bg-light rounded-pill ps-5 shadow-none" onchange="renderDashboard()">
+                <option value="All">All Departments</option>
+                <option value="Admin">Admin</option>
+                <option value="Applications">Applications</option>
+                <option value="AR & Collection">AR & Collection</option>
+                <option value="Business Development">Business Development</option>
+                <option value="Commercial">Commercial</option>
+                <option value="Contracting">Contracting</option>
+                <option value="Design">Design</option>
+                <option value="Engineering">Engineering</option>
+                <option value="Executives">Executives</option>
+                <option value="Finance">Finance</option>
+                <option value="HR & Admin">HR & Admin</option>
+                <option value="HSE">HSE</option>
+                <option value="Infrastructure & Technical Support">Infrastructure & Technical Support</option>
+                <option value="Internal Projects">Internal Projects</option>
+                <option value="IT">IT</option>
+                <option value="IT Development">IT Development</option>
+                <option value="IT Services Delivery">IT Services Delivery</option>
+                <option value="Legal Affairs">Legal Affairs</option>
+                <option value="Logistics">Logistics</option>
+                <option value="Maintenance">Maintenance</option>
+                <option value="Manufacturing">Manufacturing</option>
+                <option value="Non Standard Production">Non Standard Production</option>
+                <option value="Operational Excellence">Operational Excellence</option>
+                <option value="Operations">Operations</option>
+                <option value="Osp">Osp</option>
+                <option value="Payroll & Personnel">Payroll & Personnel</option>
+                <option value="Planning & follow up">Planning & follow up</option>
+                <option value="Process Engineering">Process Engineering</option>
+                <option value="Procurement">Procurement</option>
+                <option value="Production">Production</option>
+                <option value="Projects">Projects</option>
+                <option value="QHSE">QHSE</option>
+                <option value="Quality">Quality</option>
+                <option value="Quality Control">Quality Control</option>
+                <option value="Sales">Sales</option>
+                <option value="Standard Production">Standard Production</option>
+                <option value="Strategy and Business Development">Strategy and Business Development</option>
+                <option value="Supply Chain">Supply Chain</option>
+                <option value="Support Services Administration (5%)">Support Services Administration (5%)</option>
+                <option value="Technical Office">Technical Office</option>
+                <option value="Top Management">Top Management</option>
+                <option value="Warehouses">Warehouses</option>
+            </select>
         </div>
 
-        <div class="content-area">
-            
-            <div id="dashboard" class="view">
-                <div class="grid-3">
-                    <div class="card">
-                        <div class="card-header">Open Requisitions</div>
-                        <h1 id="dash-open-reqs">0</h1>
-                        <small>Avg Time to Fill: 18 Days</small>
+        <div class="position-relative">
+            <i class="fas fa-user-tie position-absolute text-muted" style="left: 12px; top: 50%; transform: translateY(-50%); font-size: 0.9rem;"></i>
+            <select id="filter-recruiter" class="form-select border-0 bg-light rounded-pill ps-5 shadow-none" style="width: 160px;" onchange="renderDashboard()">
+                <option value="All">All Recruiters</option>
+                <option value="Hassan">Hassan</option>
+                <option value="Shaimaa">Shaimaa</option>
+                <option value="Esraa">Esraa</option>
+                <option value="Hussien">Hussien</option>
+            </select>
+        </div>
+        
+        <button class="btn btn-light rounded-circle border shadow-sm text-danger" onclick="resetDashboardFilters()" title="Reset Filters" style="width: 38px; height: 38px;">
+            <i class="fas fa-undo-alt"></i>
+        </button>
+    </div>
+
+    <div class="d-flex align-items-center gap-2 border-start ps-3">
+        <button onclick="downloadReport('requisitions')" class="btn btn-sm btn-outline-success fw-bold rounded-pill px-3"><i class="fas fa-file-excel me-1"></i> Jobs</button>
+        <button onclick="downloadReport('candidates')" class="btn btn-sm btn-outline-success fw-bold rounded-pill px-3"><i class="fas fa-file-excel me-1"></i> Candidates</button>
+        <span class="badge bg-success-subtle text-success border border-success px-3 py-2 rounded-pill d-flex align-items-center"><i class="fas fa-circle me-2 small fa-beat-fade" style="font-size: 8px;"></i> Live</span>
+    </div>
+</div>
+
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h6 class="text-dark-blue fw-bold mb-3 ps-1 border-start border-4 border-warning ps-2">Overall Performance Targets (YTD)</h6>
                     </div>
-                    <div class="card">
-                        <div class="card-header">Active Candidates</div>
-                        <h1 id="dash-active-cand">0</h1>
-                        <small>In pipeline</small>
+                    <div class="col-md-4">
+                        <div class="kpi-target-card">
+                            <div class="kpi-target-title">Hiring Plan Achievement</div>
+                            <div class="kpi-gauge-container">
+                                <canvas id="gaugePlan"></canvas>
+                                <div class="kpi-gauge-value" id="val-gaugePlan">0%</div>
+                            </div>
+                            <span class="kpi-target-label">Target: > 90%</span>
+                        </div>
                     </div>
-                    <div class="card">
-                        <div class="card-header">Offers Pending</div>
-                        <h1 id="dash-offers">0</h1>
-                        <small>Awaiting Acceptance</small>
+                    <div class="col-md-4">
+                        <div class="kpi-target-card">
+                            <div class="kpi-target-title">Offer Acceptance Rate</div>
+                            <div class="kpi-gauge-container">
+                                <canvas id="gaugeOffer"></canvas>
+                                <div class="kpi-gauge-value" id="val-gaugeOffer">0%</div>
+                            </div>
+                            <span class="kpi-target-label">Target: > 85%</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="kpi-target-card">
+                            <div class="kpi-target-title">SLA Adherence (On-Time)</div>
+                            <div class="kpi-gauge-container">
+                                <canvas id="gaugeSLA"></canvas>
+                                <div class="kpi-gauge-value" id="val-gaugeSLA">0%</div>
+                            </div>
+                            <span class="kpi-target-label">Target: > 95%</span>
+                        </div>
                     </div>
                 </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="hero-card">
+                            <div class="hero-label">Open Positions</div>
+                            <div class="d-flex justify-content-between align-items-end">
+                                <div class="hero-value" id="total-open-reqs">0</div>
+                                <div class="hero-icon text-primary bg-primary-subtle p-2 rounded-circle"><i class="fas fa-briefcase fa-lg"></i></div>
+                            </div>
+                            <div class="hero-trend trend-up"><i class="fas fa-arrow-up me-1"></i> Active Jobs</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="hero-card">
+                            <div class="hero-label">Total Filled</div>
+                            <div class="d-flex justify-content-between align-items-end">
+                                <div class="hero-value text-success" id="total-closed-reqs">0</div>
+                                <div class="hero-icon text-success bg-success-subtle p-2 rounded-circle"><i class="fas fa-check-circle fa-lg"></i></div>
+                            </div>
+                            <div class="hero-trend trend-up"><i class="fas fa-chart-line me-1"></i> High Perf.</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="hero-card">
+                            <div class="hero-label">Active Candidates</div>
+                            <div class="d-flex justify-content-between align-items-end">
+                                <div class="hero-value text-warning" id="total-active-cand">0</div>
+                                <div class="hero-icon text-warning bg-warning-subtle p-2 rounded-circle"><i class="fas fa-users fa-lg"></i></div>
+                            </div>
+                            <div class="hero-trend trend-up" style="background:#fff7ed; color:#c2410c"><i class="fas fa-user-plus me-1"></i> Pipeline</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="hero-card">
+                            <div class="hero-label">Pending Offers</div>
+                            <div class="d-flex justify-content-between align-items-end">
+                                <div class="hero-value text-danger" id="total-pending-offers">0</div>
+                                <div class="hero-icon text-danger bg-danger-subtle p-2 rounded-circle"><i class="fas fa-file-signature fa-lg"></i></div>
+                            </div>
+                            <div class="d-flex justify-content-between w-100 mt-2">
+                                <small class="text-muted" style="font-size:0.7rem">Accepted: <strong id="total-accepted-offers" class="text-dark">0</strong></small>
+                                <small class="text-muted" style="font-size:0.7rem">Total: <strong id="total-issued-offers" class="text-dark">0</strong></small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-lg-4 mb-3">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0 fw-bold text-dark-blue"><i class="fas fa-list-ul me-2"></i> Priority Jobs</h6>
+                                <span class="badge bg-light text-dark border">Live SLA</span>
+                            </div>
+                            <div class="card-body bg-light p-3">
+                                <div id="open-req-list" style="max-height: 350px; overflow-y: auto; padding-right:5px;">
+                                    </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4 mb-3">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0 fw-bold text-dark-blue"><i class="fas fa-filter me-2"></i> Funnel</h6>
+                                <select id="funnel-pos-select" class="form-select form-select-sm shadow-none" style="width: 140px; font-size:0.8rem;" onchange="renderFunnelChart()">
+                                    <option value="All">All Positions</option>
+                                </select>
+                            </div>
+                            <div class="card-body d-flex align-items-center justify-content-center">
+                                <div style="height: 250px; width: 100%;">
+                                    <canvas id="funnelChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4 mb-3">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-header bg-white fw-bold text-dark-blue"><i class="fas fa-globe me-2"></i> Candidate Sources</div>
+                            <div class="card-body">
+                                <div style="height: 200px; width: 100%; margin-bottom: 20px;">
+                                    <canvas id="sourcingChart"></canvas>
+                                </div>
+                                <div id="source-legend" class="d-flex flex-wrap justify-content-center gap-2"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-8 mb-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-header bg-white fw-bold text-dark-blue"><i class="fas fa-chart-bar me-2"></i> Monthly Hires</div>
+                            <div class="card-body">
+                                <div style="height: 300px;"><canvas id="monthlyChart"></canvas></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-header bg-white fw-bold text-dark-blue"><i class="fas fa-clock me-2"></i> SLA Status</div>
+                            <div class="card-body d-flex flex-column justify-content-center">
+                                <div style="height: 250px;"><canvas id="slaChart"></canvas></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row" id="recruiter-kpi-container">
+                    </div>
+
             </div>
 
-            <div id="requisitions" class="view hidden">
-                <div class="card">
-                    <div class="card-header">
-                        Create New Job Requisition
-                        <button class="btn btn-outline" onclick="fillDemoReq()">Auto-Fill Demo</button>
+            <div class="tab-pane fade" id="requisition">
+                <form id="reqForm">
+                    <div class="row">
+                        <div class="col-md-6 border-end">
+                            <h5 class="mb-3 text-primary border-bottom pb-2">Create New Job Requisition</h5>
+                            <div class="row g-2">
+                                <div class="col-md-4"><label class="form-label small">Req ID</label><input type="text" class="form-control form-control-sm" id="req-id" readonly></div>
+                                <div class="col-md-8"><label class="form-label small fw-bold text-primary">Assign Recruiter (Owner)</label><select class="form-select form-select-sm" id="req-recruiter" required><option value="Hassan">Hassan</option><option value="Shaimaa">Shaimaa</option><option value="Esraa">Esraa</option><option value="Hussien">Hussien</option></select></div>
+                                <div class="col-md-6"><label class="form-label small">Requester Name</label><input type="text" class="form-control form-control-sm" id="req-name" required></div>
+                                <div class="col-md-6"><label class="form-label small">Requester Code <span class="text-muted text-success fw-bold" style="font-size: 0.7em;">(Optional)</span></label><input type="text" class="form-control form-control-sm" id="req-code"></div>
+                                <div class="col-md-6"><label class="form-label small">Job Title</label><input type="text" class="form-control form-control-sm" id="req-title" required></div>
+                                
+                                <div class="col-md-6">
+                                    <label class="form-label small">Department</label>
+                                    <select class="form-select form-select-sm" id="req-dept" required>
+                                        <option value="" disabled selected>Select Department...</option>
+                                        <option value="Admin">Admin</option>
+                                        <option value="Applications">Applications</option>
+                                        <option value="AR & Collection">AR & Collection</option>
+                                        <option value="Business Development">Business Development</option>
+                                        <option value="Commercial">Commercial</option>
+                                        <option value="Contracting">Contracting</option>
+                                        <option value="Design">Design</option>
+                                        <option value="Engineering">Engineering</option>
+                                        <option value="Executives">Executives</option>
+                                        <option value="Finance">Finance</option>
+                                        <option value="HR & Admin">HR & Admin</option>
+                                        <option value="HSE">HSE</option>
+                                        <option value="Infrastructure & Technical Support">Infrastructure & Technical Support</option>
+                                        <option value="Internal Projects">Internal Projects</option>
+                                        <option value="IT">IT</option>
+                                        <option value="IT Development">IT Development</option>
+                                        <option value="IT Services Delivery">IT Services Delivery</option>
+                                        <option value="Legal Affairs">Legal Affairs</option>
+                                        <option value="Logistics">Logistics</option>
+                                        <option value="Maintenance">Maintenance</option>
+                                        <option value="Manufacturing">Manufacturing</option>
+                                        <option value="Non Standard Production">Non Standard Production</option>
+                                        <option value="Operational Excellence">Operational Excellence</option>
+                                        <option value="Operations">Operations</option>
+                                        <option value="Osp">Osp</option>
+                                        <option value="Payroll & Personnel">Payroll & Personnel</option>
+                                        <option value="Planning & follow up">Planning & follow up</option>
+                                        <option value="Process Engineering">Process Engineering</option>
+                                        <option value="Procurement">Procurement</option>
+                                        <option value="Production">Production</option>
+                                        <option value="Projects">Projects</option>
+                                        <option value="QHSE">QHSE</option>
+                                        <option value="Quality">Quality</option>
+                                        <option value="Quality Control">Quality Control</option>
+                                        <option value="Sales">Sales</option>
+                                        <option value="Standard Production">Standard Production</option>
+                                        <option value="Strategy and Business Development">Strategy and Business Development</option>
+                                        <option value="Supply Chain">Supply Chain</option>
+                                        <option value="Support Services Administration (5%)">Support Services Administration (5%)</option>
+                                        <option value="Technical Office">Technical Office</option>
+                                        <option value="Top Management">Top Management</option>
+                                        <option value="Warehouses">Warehouses</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-6"><label class="form-label small">Cost Center (Optional)</label><input type="text" class="form-control form-control-sm" id="req-cost"></div>
+                                <div class="col-md-6"><label class="form-label small">Job Grade</label><select class="form-select form-select-sm" id="req-grade" required><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
+                                
+                                <div class="col-md-6"><label class="form-label small">Type</label><select class="form-select form-select-sm" id="req-type" required><option>Contract</option><option>Temp</option><option>Intern</option></select></div>
+                                
+                                <div class="col-md-6">
+                                    <label class="form-label small">Posting Type</label>
+                                    <select class="form-select form-select-sm" id="req-posting-type" required>
+                                        <option value="" disabled selected>Select...</option>
+                                        <option value="Internal Post">Internal Post</option>
+                                        <option value="External Post">External Post</option>
+                                        <option value="Both">Both</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold text-success">Position Layer (Policy)</label>
+                                    <select class="form-select form-select-sm" id="req-layer" required onchange="calculateTargetDate()">
+                                        <option value="" disabled selected>Select Layer...</option>
+                                        <option value="Manager">Manager</option>
+                                        <option value="Staff">Staff</option>
+                                        <option value="Blue Collar">Blue Collar</option>
+                                    </select>
+                                    <small class="text-muted" style="font-size: 0.65rem;">* SLA: Manager (3.5 Mo), Staff (2.5 Mo), Blue Collar (30 Days)</small>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small">Request Date</label>
+                                    <input type="date" class="form-control form-control-sm" id="req-date" required onchange="calculateTargetDate()">
+                                </div>
+                                <div class="col-md-12">
+                                    <div class="p-2 bg-light border rounded small text-center" id="target-date-display">
+                                        <span class="text-muted"><i class="fas fa-calculator me-1"></i> Select Date & Layer to see Target Date</span>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6"><label class="form-label small">Reason</label><select class="form-select form-select-sm" id="req-reason" required><option>Replacement</option><option>Planned</option><option>Unplanned</option></select></div>
+                                <div class="col-md-6"><label class="form-label small">Priority</label><select class="form-select form-select-sm" id="req-priority" required><option>High</option><option>Medium</option><option>Low</option></select></div>
+                                <div class="col-md-12"><label class="form-label small">Workflow Status</label><select class="form-select form-select-sm" id="req-status" required><option>Pending Approval</option><option>Approved</option><option>Rejected</option></select></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="mb-3 text-primary border-bottom pb-2">Job Description</h5>
+                            <div class="mb-2"><label class="form-label small">Responsibilities</label><textarea class="form-control form-control-sm" id="req-resp" rows="3" required></textarea></div>
+                            <div class="mb-2"><label class="form-label small">Technical Skills</label><input type="text" class="form-control form-control-sm" id="req-skills" required></div>
+                            <div class="mb-2"><label class="form-label small">Certifications (Optional)</label><input type="text" class="form-control form-control-sm" id="req-cert"></div>
+                            <div class="row g-2">
+                                <div class="col-6"><label class="form-label small">Physical Demands</label><input type="text" class="form-control form-control-sm" id="req-physical" required></div>
+                                <div class="col-6"><label class="form-label small">Gender</label><select class="form-select form-select-sm" id="req-gender" required><option>Both</option><option>Male</option><option>Female</option></select></div>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm mt-3 w-100 shadow-sm"><i class="fas fa-plus-circle me-1"></i> Create Requisition</button>
+                        </div>
                     </div>
-                    <form id="reqForm">
-                        <div class="grid-3">
-                            <div class="form-group">
-                                <label>Job Title</label>
-                                <input type="text" id="reqTitle" placeholder="e.g. CNC Operator">
-                            </div>
-                            <div class="form-group">
-                                <label>Department</label>
-                                <select id="reqDept">
-                                    <option value="Production - Plant A">Production - Plant A</option>
-                                    <option value="Logistics - Warehouse">Logistics - Warehouse</option>
-                                    <option value="Engineering - HQ">Engineering - HQ</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Type</label>
-                                <select id="reqType">
-                                    <option value="FT">Full-Time</option>
-                                    <option value="Contract">Contract</option>
-                                    <option value="Temp">Temp</option>
+                </form>
+            </div>
+
+            <div class="tab-pane fade" id="ats">
+                <div class="d-flex justify-content-between align-items-center mb-3 bg-white p-3 rounded shadow-sm border-start border-5 border-success">
+                    <div><h5 class="mb-0 text-dark-blue fw-bold"><i class="fas fa-users me-2"></i>Candidate Management Pipeline</h5><small class="text-muted">Manage all candidates, assessments, and statuses in one view.</small></div>
+                    <button class="btn btn-success shadow-sm" data-bs-toggle="modal" data-bs-target="#addCandidateModal"><i class="fas fa-plus-circle me-2"></i> Add New Candidate</button>
+                </div>
+                <div class="bg-white p-2 rounded shadow-sm mb-3 border border-light">
+                    <div class="row align-items-center">
+                        <div class="col-md-4">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-light border-end-0"><i class="fas fa-filter text-muted"></i></span>
+                                <select id="ats-filter-position" class="form-select border-start-0" onchange="renderPipeline()">
+                                    <option value="All">All Positions</option>
                                 </select>
                             </div>
                         </div>
-                        <br>
-                        <div class="grid-3">
-                            <div class="form-group">
-                                <label>Shift</label>
-                                <select id="reqShift">
-                                    <option value="Day">Day Shift</option>
-                                    <option value="Night">Night Shift</option>
-                                    <option value="Rotational">Rotational</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Reason</label>
-                                <select id="reqReason">
-                                    <option value="New Hire">New Hire</option>
-                                    <option value="Replacement">Replacement</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Budget Flag</label>
-                                <select id="reqBudget">
-                                    <option value="Approved">Approved Budget</option>
-                                    <option value="Exceptional">Exceptional</option>
-                                </select>
-                            </div>
+                        <div class="col-md-8 text-end">
+                            <small class="text-muted fst-italic" id="ats-count-badge">Showing all candidates</small>
                         </div>
-                        <div class="form-group" style="margin-top:10px;">
-                            <label>JD & Skills</label>
-                            <textarea id="reqJD" rows="2" placeholder="Skills, safety certs..."></textarea>
+                    </div>
+                </div>
+                <div class="card shadow-sm border-0"><div class="card-body p-0"><div class="table-responsive"><table class="table table-hover align-middle mb-0 text-center"><thead class="bg-light"><tr><th class="text-start ps-4">Candidate / Date</th><th>Applied For</th><th>Recruiter</th><th>Status (Stage)</th><th>Assessment (5.0)</th><th>Actions</th></tr></thead><tbody id="pipeline-body"></tbody></table></div></div></div>
+            </div>
+
+            <div class="tab-pane fade" id="referral">
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-dark-blue text-white"><h5 class="mb-0"><i class="fas fa-handshake me-2"></i>Top Management Referrals</h5></div>
+                    <div class="card-body bg-light">
+                        <form id="referralForm">
+                            <div class="row g-3">
+                                <div class="col-md-3"><label class="small fw-bold">Candidate Name</label><input type="text" class="form-control form-control-sm" id="ref-name" required></div>
+                                <div class="col-md-3"><label class="small fw-bold">Position</label><input type="text" class="form-control form-control-sm" id="ref-position" required></div>
+                                <div class="col-md-3">
+                                    <label class="small fw-bold">Recruiter</label>
+                                    <select class="form-select form-select-sm" id="ref-recruiter" required>
+                                        <option value="" disabled selected>Select...</option><option value="Shaimaa">Shaimaa</option><option value="Esraa">Esraa</option><option value="Hassan">Hassan</option><option value="Hussien">Hussien</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3"><label class="small fw-bold">Referral By</label><input type="text" class="form-control form-control-sm" id="ref-by" placeholder="e.g. CEO, MD..." required></div>
+                                <div class="col-md-2"><label class="small fw-bold">HR Score (Max 5)</label><input type="number" class="form-control form-control-sm" id="ref-hr-score" min="0" max="5" step="0.1" required></div>
+                                <div class="col-md-2"><label class="small fw-bold">Tech Score (Max 50)</label><input type="number" class="form-control form-control-sm" id="ref-tech-score" min="0" max="50" step="1" required></div>
+                                <div class="col-md-3">
+                                    <label class="small fw-bold">Final Decision</label>
+                                    <select class="form-select form-select-sm" id="ref-decision" required>
+                                        <option value="Pending">Pending</option><option value="Accepted">Accepted / Hired</option><option value="Rejected">Rejected</option><option value="On Hold">On Hold</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-5"><label class="small fw-bold">Notes (Optional)</label><input type="text" class="form-control form-control-sm" id="ref-notes"></div>
+                                <div class="col-12 text-end"><button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-save me-1"></i> Save Referral</button></div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="card shadow-sm border-0"><div class="card-body p-0"><table class="table table-hover align-middle mb-0 small text-center"><thead class="table-light"><tr><th>Candidate Name</th><th>Position</th><th>Recruiter</th><th>Scores (HR/Tech)</th><th>Referral By</th><th>Decision</th><th>Notes</th></tr></thead><tbody id="referral-body"><tr><td colspan="7" class="text-muted py-3">No referrals added yet.</td></tr></tbody></table></div></div>
+            </div>
+
+            <div class="tab-pane fade" id="employee">
+                <div class="bg-white p-3 rounded shadow-sm mb-3 border-start border-5 border-primary">
+                    <div class="row g-2 align-items-center">
+                        <div class="col-md-3">
+                            <label class="small fw-bold text-muted mb-1">Filter by Department</label>
+                            <select id="emp-filter-dept" class="form-select form-select-sm" onchange="renderEmployees()">
+                                <option value="All">All Departments</option><option value="Admin">Admin</option><option value="Applications">Applications</option><option value="AR & Collection">AR & Collection</option><option value="Business Development">Business Development</option><option value="Commercial">Commercial</option><option value="Contracting">Contracting</option><option value="Design">Design</option><option value="Engineering">Engineering</option><option value="Executives">Executives</option><option value="Finance">Finance</option><option value="HR & Admin">HR & Admin</option><option value="HSE">HSE</option><option value="Infrastructure & Technical Support">Infrastructure & Technical Support</option><option value="Internal Projects">Internal Projects</option><option value="IT">IT</option><option value="IT Development">IT Development</option><option value="IT Services Delivery">IT Services Delivery</option><option value="Legal Affairs">Legal Affairs</option><option value="Logistics">Logistics</option><option value="Maintenance">Maintenance</option><option value="Manufacturing">Manufacturing</option><option value="Non Standard Production">Non Standard Production</option><option value="Operational Excellence">Operational Excellence</option><option value="Operations">Operations</option><option value="Osp">Osp</option><option value="Payroll & Personnel">Payroll & Personnel</option><option value="Planning & follow up">Planning & follow up</option><option value="Process Engineering">Process Engineering</option><option value="Procurement">Procurement</option><option value="Production">Production</option><option value="Projects">Projects</option><option value="QHSE">QHSE</option><option value="Quality">Quality</option><option value="Quality Control">Quality Control</option><option value="Sales">Sales</option><option value="Standard Production">Standard Production</option><option value="Strategy and Business Development">Strategy and Business Development</option><option value="Supply Chain">Supply Chain</option><option value="Support Services Administration (5%)">Support Services Administration (5%)</option><option value="Technical Office">Technical Office</option><option value="Top Management">Top Management</option><option value="Warehouses">Warehouses</option>
+                            </select>
                         </div>
-                        <div style="text-align: right; margin-top:10px;">
-                            <button type="button" class="btn btn-primary" onclick="createRequisition()">Submit Requisition</button>
+                        <div class="col-md-3">
+                            <label class="small fw-bold text-muted mb-1">Filter by Position</label>
+                            <select id="emp-filter-title" class="form-select form-select-sm" onchange="renderEmployees()">
+                                <option value="All">All Positions</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 text-end d-flex align-items-end justify-content-end">
+                            <button onclick="downloadReport('employees')" class="btn btn-success btn-sm shadow-sm"><i class="fas fa-file-excel me-2"></i> Export Employee Report</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="alert alert-info py-2 small shadow-sm"><i class="fas fa-info-circle"></i> <strong>Professional Development Policy:</strong> The company covers course costs based on professional development needs after the first 3 months of employment.</div>
+                <div class="card shadow-sm"><div class="card-header bg-dark-blue text-white small d-flex justify-content-between align-items-center"><span>Active Employees Database</span><span class="badge bg-light text-dark" id="emp-count-badge">0 Employees</span></div><div class="card-body p-0"><table class="table table-hover table-sm mb-0 align-middle"><thead class="table-light"><tr><th>Code</th><th>Name</th><th>Title</th><th>Dept</th><th>Manager</th><th>Recruiter</th><th>Hiring Date</th><th>Action</th></tr></thead><tbody id="employee-body"></tbody></table></div></div>
+            </div>
+
+            <div class="tab-pane fade" id="lnd">
+                <div class="d-flex justify-content-between align-items-center mb-4"><h5 class="text-dark-blue fw-bold"><i class="fas fa-chalkboard-teacher me-2"></i>Learning & Development</h5><button class="btn btn-primary btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#addTrainingModal"><i class="fas fa-plus me-1"></i> New Training Program</button></div>
+                <div class="row"><div class="col-md-8"><div class="card shadow-sm h-100"><div class="card-header bg-light border-0 fw-bold text-secondary">Active Training Programs</div><div class="card-body p-0"><table class="table table-striped table-hover mb-0 small text-center"><thead class="table-dark"><tr><th>Program</th><th>Type</th><th>Provider</th><th>Date</th><th>Cost (EGP)</th><th>Status</th></tr></thead><tbody id="training-body"><tr><td colspan="6" class="text-muted">No active training programs.</td></tr></tbody></table></div></div></div><div class="col-md-4"><div class="card shadow-sm h-100"><div class="card-header bg-white border-0 fw-bold">Budget Utilization</div><div class="card-body text-center"><h2 class="display-6 fw-bold text-success mb-0" id="total-training-cost">0 EGP</h2><small class="text-muted">Total Spent (YTD)</small><hr><div style="height: 200px; position: relative;"><canvas id="trainingBudgetChart"></canvas></div></div></div></div></div>
+            </div>
+
+            <div class="tab-pane fade" id="performance">
+                <div class="d-flex justify-content-between align-items-center mb-4"><h5 class="text-dark-blue fw-bold"><i class="fas fa-tachometer-alt me-2"></i>Performance Management</h5><button class="btn btn-warning text-dark btn-sm shadow-sm" onclick="showPerformanceModal()"><i class="fas fa-plus me-1"></i> Add Review</button></div>
+                <div class="row"><div class="col-md-6"><div class="card shadow-sm mb-4"><div class="card-header bg-dark-blue text-white">Performance Distribution (Bell Curve)</div><div class="card-body"><div style="height: 250px;"><canvas id="performanceChart"></canvas></div></div></div></div><div class="col-md-6"><div class="card shadow-sm mb-4"><div class="card-header bg-light border-0 fw-bold">Recent Reviews</div><div class="card-body p-0"><ul class="list-group list-group-flush small" id="performance-list"><li class="list-group-item text-muted text-center py-3">No reviews added yet.</li></ul></div></div></div></div>
+            </div>
+            <div class="tab-pane fade" id="pos-status">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 class="text-dark-blue fw-bold"><i class="fas fa-tasks me-2"></i>Positions Tracking Sheet</h5>
+        <button class="btn btn-sm btn-outline-success shadow-sm" onclick="downloadReport('requisitions')">
+            <i class="fas fa-file-excel me-1"></i> Export Report
+        </button>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 text-center table-bordered" style="font-size: 0.85rem;">
+                    <thead class="bg-dark-blue text-white">
+                        <tr>
+                            <th style="width: 20%;">Position / Req ID</th>
+                            <th>Recruiter</th>
+                            <th>Candidates</th>
+                            <th>Status</th>
+                            <th>Hired Name</th>
+                            <th>Filled Date</th>
+                            <th>Time to Fill</th>
+                            <th>SLA Status (Delay)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pos-status-body">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+            
+            <div class="tab-pane fade" id="audit">
+                <h5 class="mb-3 text-dark-blue border-bottom pb-2">System Audit Trail</h5>
+                <div class="audit-container card shadow-sm p-2"><div class="table-responsive"><table class="table table-bordered table-sm small table-audit"><thead><tr><th>Timestamp</th><th>User</th><th>Action Details</th></tr></thead><tbody id="audit-body"></tbody></table></div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="jobDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-dark-blue text-white">
+                <h5 class="modal-title"><i class="fas fa-file-contract me-2"></i>Job Details & SLA Management</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
+                    <div>
+                        <h4 class="text-primary fw-bold mb-1" id="modal-job-title"></h4>
+                        <span class="badge bg-secondary" id="modal-req-id"></span>
+                        <span class="badge bg-info text-dark" id="modal-layer"></span>
+                    </div>
+                    <div class="text-end">
+                        <small class="text-muted d-block">Current Target Date</small>
+                        <h5 class="fw-bold text-danger" id="modal-target-date"></h5>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6"><strong>Hiring Manager:</strong> <span id="modal-manager"></span></div>
+                    <div class="col-md-6"><strong>Department:</strong> <span id="modal-dept"></span></div>
+                    <div class="col-md-6"><strong>Start Date:</strong> <span id="modal-start-date"></span></div>
+                    <div class="col-md-6"><strong>Extensions:</strong> <span id="modal-ext-count" class="badge bg-warning text-dark">0</span></div>
+                </div>
+
+                <hr>
+
+                <div id="extension-section" class="bg-light p-3 rounded border mb-3" style="display: none;">
+                    <h6 class="fw-bold text-dark-blue mb-2"><i class="fas fa-history me-1"></i> Extend SLA Deadline</h6>
+                    <form id="extensionForm">
+                        <div class="row g-2">
+                            <div class="col-md-4">
+                                <label class="small fw-bold">Extension Reason</label>
+                                <select class="form-select form-select-sm" id="ext-reason" required>
+                                    <option value="" disabled selected>Select Reason...</option>
+                                    <option value="Market Scarcity">Market Scarcity (Niche Skill)</option>
+                                    <option value="Budget/Salary Issue">Budget/Salary Mismatch</option>
+                                    <option value="Requirements Changed">Requirements Changed</option>
+                                    <option value="Manager Unavailable">Hiring Manager Unavailable</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="small fw-bold">New Policy Duration</label>
+                                <select class="form-select form-select-sm" id="ext-duration" onchange="previewNewDate()">
+                                    <option value="0" selected>Custom Date</option>
+                                    <option value="30">Add 1 Month (Standard)</option>
+                                    <option value="15">Add 2 Weeks (Short)</option>
+                                    <option value="policy">Full Layer Policy Cycle</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="small fw-bold">New Target Date</label>
+                                <input type="date" class="form-control form-control-sm" id="ext-new-date" required>
+                            </div>
+                            <div class="col-12 text-end mt-2">
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="toggleExtensionForm()">Cancel</button>
+                                <button type="button" class="btn btn-sm btn-primary" onclick="submitExtension()">Confirm Extension</button>
+                            </div>
                         </div>
                     </form>
                 </div>
+
+                <h6 class="fw-bold text-dark">Job Responsibilities:</h6>
+                <p id="modal-resp" class="text-muted bg-light p-3 rounded border small" style="white-space: pre-wrap;"></p>
                 
-                <div class="card">
-                    <div class="card-header">Requisition List</div>
-                    <table id="reqTable">
-                        <thead>
-                            <tr><th>Req ID</th><th>Title</th><th>Dept</th><th>Shift</th><th>Status</th><th>Priority</th></tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
+                <h6 class="fw-bold text-dark mt-3">Required Skills:</h6>
+                <p id="modal-skills" class="text-muted small"></p>
+            </div>
+            <div class="modal-footer justify-content-between">
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="toggleExtensionForm()"><i class="fas fa-clock me-1"></i> Extend SLA</button>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>    
+    <div class="modal fade" id="addCandidateModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog"><div class="modal-content border-0 shadow"><div class="modal-header bg-success text-white"><h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Add New Candidate</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body"><form id="candidateForm"><div class="mb-2"><label class="small fw-bold">Link to Job Requisition</label><select class="form-select" id="cand-req-link" required></select></div><div class="row g-2 mb-2"><div class="col-6"><label class="small fw-bold">Recruiter</label><select class="form-select" id="cand-recruiter" required><option>Hassan</option><option>Shaimaa</option><option>Esraa</option><option>Hussien</option></select></div><div class="col-6"><label class="small fw-bold">Interview Date</label><input type="date" class="form-control" id="cand-interview-date" required></div></div><div class="mb-2"><label class="small fw-bold">Candidate Name</label><input type="text" class="form-control" id="cand-name" required></div><div class="row g-2 mb-2"><div class="col-6"><label class="small">Phone</label><input type="text" class="form-control" id="cand-phone" required></div><div class="col-6"><label class="small">Email</label><input type="email" class="form-control" id="cand-email" required></div></div><div class="mb-3 border border-dashed p-2 bg-light rounded text-center"><label class="small fw-bold text-danger d-block mb-1"><i class="fas fa-file-upload me-1"></i> Upload CV / Resume</label><input type="file" class="form-control form-control-sm" id="cand-file" accept=".pdf,.doc,.docx,.jpg,.png" required></div><div class="mb-2"><label class="small">Source</label><select class="form-select" id="cand-source" required><option>LinkedIn</option><option>Job Board</option><option>Referral</option><option>Agency</option><option>Social Media</option></select></div><div class="row g-2 mb-3"><div class="col-6"><label class="small">Notice Period</label><input type="text" class="form-control" id="cand-notice" required></div><div class="col-6"><label class="small">Exp. Salary</label><input type="text" class="form-control" id="cand-salary" required></div></div><div class="mb-3"><label class="small fw-bold text-primary">Initial Status (Stage)</label><select class="form-select" id="cand-initial-status" required><option value="Phone Screen">Phone Screen</option><option value="HR Interview">HR Interview</option><option value="Technical Interview">Technical Interview</option><option value="Job Offer Phase">Job Offer Phase</option></select></div><button type="submit" class="btn btn-success w-100 fw-bold">Save Candidate</button></form></div></div></div></div>
+    
+    <div class="modal fade" id="candidateProfileModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-dark-blue text-white"><h5 class="modal-title"><i class="fas fa-id-card me-2"></i>Candidate Profile: <span id="profile-name" class="fw-bold text-warning"></span></h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <div class="row mb-3"><div class="col-md-7"><p class="mb-1 border-bottom pb-1"><strong><i class="fas fa-briefcase text-muted me-2"></i>Position:</strong> <span id="profile-role"></span></p><p class="mb-1 border-bottom pb-1 d-flex align-items-center"><strong><i class="fas fa-envelope text-muted me-2"></i>Email:</strong> <span id="profile-email" class="ms-1 me-2"></span> <a href="#" id="profile-email-link" class="btn btn-sm btn-outline-primary py-0 px-2 rounded-pill" title="Send Quick Email"><i class="fas fa-paper-plane me-1"></i> Send Mail</a></p><p class="mb-1 border-bottom pb-1"><strong><i class="fas fa-phone text-muted me-2"></i>Phone:</strong> <span id="profile-phone"></span></p><p class="mb-1"><strong><i class="fas fa-calendar-alt text-muted me-2"></i>Interview Date:</strong> <span id="profile-date"></span></p></div><div class="col-md-5 text-center"><div class="p-3 bg-light border rounded shadow-sm"><span class="d-block small text-muted mb-1 text-uppercase fw-bold">Current Status</span><span class="badge bg-warning text-dark fs-6 mb-3" id="profile-status">Status</span><div id="profile-cv-section"></div></div></div></div><hr><div class="row"><div class="col-md-5 border-end"><h6 class="text-primary fw-bold mb-3"><i class="fas fa-star-half-alt me-2"></i>Interview Scores (1-5)</h6><div class="mb-2"><label class="small fw-bold">HR Score</label><input type="number" class="form-control" id="profile-hr-score" min="1" max="5" step="0.1" placeholder="e.g. 4.5"></div><div class="mb-2"><label class="small fw-bold">Technical Score</label><input type="number" class="form-control" id="profile-tech-score" min="1" max="5" step="0.1" placeholder="e.g. 3.0"></div></div><div class="col-md-7"><h6 class="text-primary fw-bold mb-3"><i class="fas fa-sticky-note me-2"></i>Interviewer Notes</h6><textarea class="form-control" id="profile-notes" rows="4" placeholder="Enter strengths, weaknesses, and general feedback here..."></textarea></div></div>
+                </div>
+                <div class="modal-footer justify-content-between bg-light">
+                    <div><button class="btn btn-outline-danger" onclick="rejectFromModal()"><i class="fas fa-times-circle me-1"></i> Reject</button></div>
+                    <div><button type="button" class="btn btn-outline-primary me-1" onclick="openEmailTemplateModal()"><i class="fas fa-magic me-1"></i> Generate Email</button><button class="btn btn-secondary me-1" data-bs-dismiss="modal">Close</button><button class="btn btn-primary" onclick="saveProfileData()"><i class="fas fa-save me-1"></i> Save Assessment</button></div>
                 </div>
             </div>
-
-            <div id="ats" class="view hidden">
-                <div class="grid-2">
-                    <div class="card">
-                        <div class="card-header">1. Add Candidate</div>
-                        <div class="form-group">
-                            <label>Link to Req ID</label>
-                            <select id="candReqLink"></select>
-                        </div>
-                        <div class="grid-2">
-                            <div class="form-group"><label>Candidate Name</label><input type="text" id="candName"></div>
-                            <div class="form-group"><label>Source</label><select id="candSource"><option>LinkedIn</option><option>Agency</option></select></div>
-                        </div>
-                        <div class="form-group">
-                            <label>Score (0-100)</label>
-                            <input type="number" id="candScore" placeholder="Test Result">
-                        </div>
-                        <button class="btn btn-success" onclick="addCandidate()">Create Profile</button>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">2. Interview Feedback</div>
-                        <div class="form-group">
-                            <label>Select Candidate</label>
-                            <select id="evalCandSelect"></select>
-                        </div>
-                        <div class="form-group">
-                            <label>Panel Rating</label>
-                            <div class="grid-3">
-                                <input type="number" placeholder="Tech (1-5)" id="rateTech">
-                                <input type="number" placeholder="Cult (1-5)" id="rateCult">
-                                <input type="number" placeholder="Comm (1-5)" id="rateComm">
-                            </div>
-                        </div>
-                        <button class="btn btn-primary" onclick="submitEval()">Save Assessment</button>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">Candidate Pipeline</div>
-                    <table id="candTable">
-                        <thead>
-                            <tr><th>ID</th><th>Name</th><th>Applied For</th><th>Stage</th><th>Score</th><th>Action</th></tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div id="employees" class="view hidden">
-                <div class="card">
-                    <div class="card-header">Employee Master Data</div>
-                    <table id="empTable">
-                        <thead>
-                            <tr><th>Emp ID</th><th>Name</th><th>Job Title</th><th>Dept</th><th>Manager</th><th>Start Date</th></tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div id="audit" class="view hidden">
-                <div class="card" style="background:#111; color:#0f0; height:400px; overflow-y:scroll;">
-                    <div class="card-header" style="background:#222; color:#fff; border:none;">System Audit Log</div>
-                    <div id="auditLogContainer"></div>
-                </div>
-            </div>
-
         </div>
     </div>
 
-    <script>
-        // --- DATA STORE & INITIALIZATION ---
-        // Try to load from LocalStorage, otherwise use defaults
-        let DB = JSON.parse(localStorage.getItem('AcrowHRIS_DB')) || {
-            reqs: [],
-            cands: [],
-            employees: [],
-            logs: []
-        };
+    <div class="modal fade" id="employeeProfileModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog"><div class="modal-content border-0 shadow"><div class="modal-header bg-dark-blue text-white"><h5 class="modal-title"><i class="fas fa-user-check me-2"></i>Employee Master Data</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body p-4"><div class="text-center mb-4"><div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center border" style="width: 80px; height: 80px;"><i class="fas fa-user fa-3x text-secondary"></i></div><h4 class="mt-2 text-dark-blue fw-bold" id="emp-modal-name"></h4><span class="badge bg-success" id="emp-modal-code"></span></div><div class="row g-3"><div class="col-6"><small class="text-muted d-block">Job Title</small><strong id="emp-modal-title"></strong></div><div class="col-6"><small class="text-muted d-block">Department</small><strong id="emp-modal-dept"></strong></div><div class="col-12 border-top pt-2"></div><div class="col-6"><small class="text-muted d-block">Manager</small><strong id="emp-modal-manager"></strong></div><div class="col-6"><small class="text-muted d-block text-primary">Hired By (Recruiter)</small><strong class="text-primary" id="emp-modal-recruiter"></strong></div><div class="col-12 border-top pt-2"></div><div class="col-6"><small class="text-muted d-block">Email</small><strong id="emp-modal-email"></strong></div><div class="col-6"><small class="text-muted d-block">Phone</small><strong id="emp-modal-phone"></strong></div><div class="col-12 border-top pt-2"></div><div class="col-6"><small class="text-muted d-block">Start Date</small><strong id="emp-modal-date"></strong></div><div class="col-6"><small class="text-muted d-block">Probation Ends</small><strong class="text-warning" id="emp-modal-probation"></strong></div></div></div><div class="modal-footer bg-light"><button type="button" class="btn btn-secondary btn-sm w-100" data-bs-dismiss="modal">Close Record</button></div></div></div></div>
+    
+    <div class="modal fade" id="addTrainingModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog"><div class="modal-content border-0 shadow"><div class="modal-header bg-primary text-white"><h5 class="modal-title">Add Training Program</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="trainingForm"><div class="mb-2"><label class="small">Course Name</label><input type="text" class="form-control" id="train-name" required></div><div class="row g-2 mb-2"><div class="col-6"><label class="small">Provider</label><input type="text" class="form-control" id="train-provider" required></div><div class="col-6"><label class="small">Type</label><select class="form-select" id="train-type"><option>Technical</option><option>Soft Skills</option><option>Safety</option></select></div></div><div class="row g-2 mb-3"><div class="col-6"><label class="small">Date</label><input type="date" class="form-control" id="train-date" required></div><div class="col-6"><label class="small">Cost (EGP)</label><input type="number" class="form-control" id="train-cost" required></div></div><div class="mb-3"><label class="small">Status</label><select class="form-select" id="train-status"><option>Planned</option><option>In Progress</option><option>Completed</option></select></div><button type="submit" class="btn btn-primary w-100">Save Program</button></form></div></div></div></div>
+    
+    <div class="modal fade" id="addPerformanceModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog"><div class="modal-content border-0 shadow"><div class="modal-header bg-warning text-dark"><h5 class="modal-title">Add Performance Review</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="performanceForm"><div class="mb-2"><label class="small">Employee</label><select class="form-select" id="perf-emp-select" required></select></div><div class="mb-2"><label class="small">Review Period</label><select class="form-select" id="perf-period"><option>Q1 2025</option><option>Q2 2025</option><option>Q3 2025</option><option>Q4 2025</option></select></div><div class="mb-3"><label class="small">Overall Rating (1-5)</label><input type="number" class="form-control" id="perf-rating" min="1" max="5" step="0.1" required></div><div class="mb-3"><label class="small">Comments</label><textarea class="form-control" id="perf-comment" rows="2"></textarea></div><button type="submit" class="btn btn-warning w-100">Save Review</button></form></div></div></div></div>
 
-        // Save Helper
-        function saveData() {
-            localStorage.setItem('AcrowHRIS_DB', JSON.stringify(DB));
-        }
+    <div class="modal fade" id="emailTemplateModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-dark-blue text-white"><h5 class="modal-title"><i class="fas fa-paper-plane me-2"></i>Send Email to Candidate</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <div class="mb-3"><label class="small fw-bold text-muted">Select Template</label><select class="form-select" id="email-template-select" onchange="updateEmailPreview()"><option value="interview">📅 Interview Invitation</option><option value="offer">🎉 Job Offer</option><option value="reject">⛔ Rejection Letter</option></select></div>
+                    <div class="mb-3"><label class="small fw-bold text-muted">Subject Line</label><input type="text" class="form-control bg-light" id="email-subject-preview"></div>
+                    <div class="mb-3"><label class="small fw-bold text-muted">Email Body (Editable)</label><textarea class="form-control" id="email-body-preview" rows="10" style="font-size: 0.9rem;"></textarea></div>
+                </div>
+                <div class="modal-footer bg-light"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button><button type="button" class="btn btn-primary" onclick="sendGeneratedEmail()"><i class="fas fa-external-link-alt me-1"></i> Open in Outlook/Mail</button></div>
+            </div>
+        </div>
+    </div>
 
-        // --- NAVIGATION ---
-        function nav(id) {
-            document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
-            document.getElementById(id).classList.remove('hidden');
-            document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
-            event.currentTarget.classList.add('active');
-            updateStats();
-        }
-
-        // --- LOGGING ---
-        function log(action, user = "Hassan Adel") {
-            const time = new Date().toISOString().replace('T', ' ').substring(0, 19);
-            const entry = `[${time}] [USER:${user}] ${action}`;
-            DB.logs.push(entry);
-            saveData();
-            renderLogs();
-        }
-        
-        function renderLogs() {
-            const container = document.getElementById('auditLogContainer');
-            container.innerHTML = ''; 
-            DB.logs.slice().reverse().forEach(entry => {
-                const div = document.createElement('div');
-                div.className = 'audit-line';
-                div.innerText = entry;
-                container.appendChild(div);
-            });
-        }
-
-        // --- 1. REQUISITIONS ---
-        function createRequisition() {
-            const title = document.getElementById('reqTitle').value;
-            if(!title) return alert("Title required");
-
-            const req = {
-                id: "REQ-" + (1000 + DB.reqs.length),
-                title: title,
-                dept: document.getElementById('reqDept').value,
-                type: document.getElementById('reqType').value,
-                shift: document.getElementById('reqShift').value,
-                reason: document.getElementById('reqReason').value,
-                budget: document.getElementById('reqBudget').value,
-                jd: document.getElementById('reqJD').value,
-                manager: "Eng. Ahmed (Plant Mgr)",
-                status: "Open"
-            };
-
-            DB.reqs.push(req);
-            saveData();
-            log(`Created Requisition ${req.id} for ${req.title}`);
-            
-            renderReqTable();
-            updateDropdowns();
-            alert("Requisition Saved & Sent to Workflow");
-            document.getElementById('reqForm').reset();
-        }
-
-        function renderReqTable() {
-            const tbody = document.querySelector('#reqTable tbody');
-            tbody.innerHTML = '';
-            DB.reqs.forEach(r => {
-                const tr = `<tr>
-                    <td><strong>${r.id}</strong></td>
-                    <td>${r.title}</td>
-                    <td>${r.dept}</td>
-                    <td>${r.shift}</td>
-                    <td><span class="badge ${r.status==='Open'?'bg-open':'bg-closed'}">${r.status}</span></td>
-                    <td>High</td>
-                </tr>`;
-                tbody.innerHTML += tr;
-            });
-        }
-
-        // --- 2. ATS MODULE ---
-        function addCandidate() {
-            const reqId = document.getElementById('candReqLink').value;
-            const name = document.getElementById('candName').value;
-            if(!name || !reqId) return alert("Missing Data");
-
-            const req = DB.reqs.find(r => r.id === reqId);
-
-            const cand = {
-                id: "CAND-" + (500 + DB.cands.length),
-                reqId: reqId,
-                jobTitle: req.title, 
-                name: name,
-                source: document.getElementById('candSource').value,
-                score: document.getElementById('candScore').value,
-                stage: "Screening",
-                ratings: {}
-            };
-
-            DB.cands.push(cand);
-            saveData();
-            log(`New Candidate: ${name} applied for ${reqId}`);
-            renderCandTable();
-            updateDropdowns();
-        }
-
-        function updateDropdowns() {
-            const sel = document.getElementById('candReqLink');
-            sel.innerHTML = '';
-            DB.reqs.filter(r => r.status === 'Open').forEach(r => {
-                sel.innerHTML += `<option value="${r.id}">${r.id} - ${r.title}</option>`;
-            });
-
-            const sel2 = document.getElementById('evalCandSelect');
-            sel2.innerHTML = '';
-            DB.cands.filter(c => c.stage !== 'Hired').forEach(c => {
-                sel2.innerHTML += `<option value="${c.id}">${c.name} (${c.stage})</option>`;
-            });
-        }
-
-        function submitEval() {
-            const candId = document.getElementById('evalCandSelect').value;
-            if(!candId) return;
-            
-            const cand = DB.cands.find(x => x.id === candId);
-            cand.ratings = { tech: document.getElementById('rateTech').value };
-            cand.stage = "Interview Pass";
-            
-            saveData();
-            log(`Evaluated ${cand.name} - Moved to Pass`);
-            renderCandTable();
-            alert("Assessment Saved");
-        }
-
-        function renderCandTable() {
-            const tbody = document.querySelector('#candTable tbody');
-            tbody.innerHTML = '';
-            DB.cands.forEach(c => {
-                let actionBtn = `<button class="btn btn-sm btn-outline" onclick="advanceStage('${c.id}')">Next Stage</button>`;
-                if(c.stage === 'Offer Sent') {
-                    actionBtn = `<button class="btn btn-sm btn-success" onclick="hireProcess('${c.id}')">HIRE</button>`;
-                } else if (c.stage === 'Hired') {
-                    actionBtn = `<span style="color:green"><i class="fas fa-check"></i> Hired</span>`;
-                }
-
-                tbody.innerHTML += `<tr>
-                    <td>${c.id}</td>
-                    <td>${c.name}</td>
-                    <td>${c.jobTitle}</td>
-                    <td><span class="badge ${c.stage==='Hired'?'bg-open':'bg-hold'}">${c.stage}</span></td>
-                    <td>${c.score}</td>
-                    <td>${actionBtn}</td>
-                </tr>`;
-            });
-        }
-
-        function advanceStage(id) {
-            const c = DB.cands.find(x => x.id === id);
-            const stages = ["Screening", "Interview", "Offer Sent", "Hired"];
-            let currIdx = stages.indexOf(c.stage);
-            if(currIdx < 2) {
-                c.stage = stages[currIdx + 1];
-                saveData();
-                renderCandTable();
-                log(`Moved ${c.name} to ${c.stage}`);
-            }
-        }
-
-        // --- 3. HIRING ---
-        function hireProcess(candId) {
-            const c = DB.cands.find(x => x.id === candId);
-            const req = DB.reqs.find(x => x.id === c.reqId);
-
-            if(!confirm(`Hire ${c.name}? This will map fields to Employee Central.`)) return;
-
-            c.stage = "Hired";
-            req.status = "Filled/Closed";
-
-            const newEmp = {
-                id: "EMP-" + (2000 + DB.employees.length),
-                name: c.name,
-                title: req.title,
-                dept: req.dept,
-                manager: req.manager,
-                startDate: new Date().toISOString().split('T')[0]
-            };
-
-            DB.employees.push(newEmp);
-            saveData();
-            
-            log(`HIRED: ${c.name} mapped to ${newEmp.id}`);
-            
-            renderCandTable();
-            renderReqTable();
-            renderEmpTable();
-            updateStats();
-            
-            alert(`Hiring Complete! Employee ID: ${newEmp.id}`);
-        }
-
-        function renderEmpTable() {
-            const tbody = document.querySelector('#empTable tbody');
-            tbody.innerHTML = '';
-            DB.employees.forEach(e => {
-                tbody.innerHTML += `<tr>
-                    <td><strong>${e.id}</strong></td>
-                    <td>${e.name}</td>
-                    <td>${e.title}</td>
-                    <td>${e.dept}</td>
-                    <td>${e.manager}</td>
-                    <td>${e.startDate}</td>
-                </tr>`;
-            });
-        }
-
-        function updateStats() {
-            if(document.getElementById('dash-open-reqs')) {
-                document.getElementById('dash-open-reqs').innerText = DB.reqs.filter(r => r.status === 'Open').length;
-                document.getElementById('dash-active-cand').innerText = DB.cands.filter(c => c.stage !== 'Hired').length;
-                document.getElementById('dash-offers').innerText = DB.cands.filter(c => c.stage === 'Offer Sent').length;
-            }
-        }
-        
-        function fillDemoReq() {
-            document.getElementById('reqTitle').value = "Production Supervisor";
-            document.getElementById('reqJD').value = "Safety Cert required.";
-        }
-
-        // Reset for Demo
-        function resetSystem() {
-            if(confirm("Are you sure? This will delete all saved data.")) {
-                localStorage.removeItem('AcrowHRIS_DB');
-                location.reload();
-            }
-        }
-
-        // --- INIT ---
-        window.onload = function() {
-            renderReqTable();
-            renderCandTable();
-            renderEmpTable();
-            renderLogs();
-            updateStats();
-            updateDropdowns();
-            
-            if(DB.logs.length === 0) log("System Initialized.");
-        };
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
