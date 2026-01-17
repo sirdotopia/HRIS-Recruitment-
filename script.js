@@ -606,50 +606,79 @@ function renderAuditLog() {
 // ==========================================
 function renderPositionsStatus() {
     const tbody = document.getElementById('pos-status-body');
-    if (!tbody) return;
-    tbody.innerHTML = '';
+    const filterSelect = document.getElementById('pos-status-filter');
+    
+    if (!tbody || !filterSelect) return;
 
-    // Loop through all requisitions
-    systemData.requisitions.forEach(req => {
-        // 1. Count Candidates
+    // 1. ملء الفلتر بالوظائف (مرة واحدة أو تحديثه)
+    // نحتفظ بالقيمة المختارة حالياً عشان متضعش
+    const currentVal = filterSelect.value;
+    
+    // نجيب كل المسميات الوظيفية بدون تكرار
+    const uniqueTitles = [...new Set(systemData.requisitions.map(r => r.title))].sort();
+    
+    // نعيد بناء القائمة
+    filterSelect.innerHTML = '<option value="All">All Positions</option>';
+    uniqueTitles.forEach(title => {
+        if(title) filterSelect.add(new Option(title, title));
+    });
+
+    // نرجع الاختيار القديم لو لسه موجود
+    if(uniqueTitles.includes(currentVal)) filterSelect.value = currentVal;
+
+
+    // 2. تطبيق الفلترة
+    const selectedFilter = filterSelect.value;
+    let filteredReqs = systemData.requisitions;
+
+    if (selectedFilter !== 'All') {
+        filteredReqs = filteredReqs.filter(r => r.title === selectedFilter);
+    }
+
+    // 3. رسم الجدول
+    tbody.innerHTML = '';
+    
+    if (filteredReqs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-muted py-3">No positions found matching filter.</td></tr>`;
+        return;
+    }
+
+    filteredReqs.forEach(req => {
+        // حساب عدد المرشحين
         const candCount = systemData.candidates.filter(c => c.req_id === req.req_id).length;
 
-        // 2. Find Hired Candidate (if any)
+        // البحث عن الموظف المعين
         const hiredCand = systemData.candidates.find(c => c.req_id === req.req_id && c.status === 'Hired');
         const hiredName = hiredCand ? `<span class="fw-bold text-success"><i class="fas fa-user-check me-1"></i> ${hiredCand.name}</span>` : '-';
 
-        // 3. Dates Logic
+        // حسابات التواريخ والـ SLA
         const startDate = new Date(req.start_date);
         const targetDate = new Date(req.target_date);
         let filledDateDisplay = '-';
         let timeToFillDisplay = '-';
         let slaDisplay = '-';
 
-        // 4. Logic for FILLED Positions
         if (req.status === 'Filled' && req.filled_date) {
             const filledDate = new Date(req.filled_date);
             filledDateDisplay = req.filled_date;
-
-            // Time to Fill (Days taken)
+            
+            // Time to Fill
             const daysTaken = Math.ceil((filledDate - startDate) / (1000 * 60 * 60 * 24));
             timeToFillDisplay = `${daysTaken} Days`;
 
-            // SLA Check (Actual Delay)
+            // SLA Check
             const delayDays = Math.ceil((filledDate - targetDate) / (1000 * 60 * 60 * 24));
-            
             if (filledDate <= targetDate) {
                 slaDisplay = `<span class="badge bg-success">On Time</span>`;
             } else {
                 slaDisplay = `<span class="badge bg-danger">Late by ${delayDays} Days</span>`;
             }
         } 
-        // 5. Logic for OPEN Positions (Live Tracking)
         else if (req.status !== 'Rejected') {
             const today = new Date();
             const daysOpen = Math.ceil((today - startDate) / (1000 * 60 * 60 * 24));
             timeToFillDisplay = `<span class="text-muted">Running (${daysOpen} Days)</span>`;
 
-            // SLA Check (Projected Delay)
             const remaining = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
             if (remaining >= 0) {
                 slaDisplay = `<span class="badge bg-info text-dark">${remaining} Days Left</span>`;
@@ -657,11 +686,9 @@ function renderPositionsStatus() {
                 slaDisplay = `<span class="badge bg-warning text-dark">Overdue ${Math.abs(remaining)} Days</span>`;
             }
         } else {
-            // Cancelled/Rejected Reqs
             slaDisplay = '<span class="badge bg-secondary">Cancelled</span>';
         }
 
-        // 6. Build the Row
         tbody.innerHTML += `
         <tr>
             <td class="text-start ps-3">
@@ -1132,111 +1159,185 @@ function renderKPIs(candidatesList, reqsList) {
     
     container.innerHTML = '';
     
+    // 1. تعريف الأهداف (Targets) بناءً على طلبك
+    const targets = {
+        timeToFill: 45,        // Target: < 45 Days (Standard for "Average Days")
+        offerAcceptance: 85,   // Target: 85%
+        interviewRatio: 10     // Target: 10%
+    };
+
+    // تحديد الـ Recruiters
     const recFilter = document.getElementById('filter-recruiter').value;
-    let recruitersToShow = systemData.recruiters;
+    let recruitersToShow = systemData.recruiters || ['Hassan', 'Shaimaa', 'Esraa', 'Hussien']; 
     if (recFilter !== 'All') recruitersToShow = [recFilter];
     
-    let chartsData = [];
-    let htmlContent = '';
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const selectedYear = document.getElementById('filter-year').value;
 
-    recruitersToShow.forEach((recruiter, index) => {
-        const myReqs = reqsList.filter(r => r.recruiter === recruiter);
-        const myCands = candidatesList.filter(c => c.recruiter === recruiter);
+    recruitersToShow.forEach(recruiter => {
+        // تصفية البيانات الخاصة بالركروتر
+        const recReqs = systemData.requisitions.filter(r => r.recruiter === recruiter);
+        const recCands = systemData.candidates.filter(c => c.recruiter === recruiter);
+
+        let monthlyRowsHTML = '';
+        let hasData = false;
         
-        // Metrics
-        const totalPlanned = myReqs.length; 
-        const totalFilled = myReqs.filter(r => r.status === 'Filled').length;
-        const hiringPlanRate = totalPlanned > 0 ? Math.round((totalFilled / totalPlanned) * 100) : 0;
-        const hpColor = hiringPlanRate >= 90 ? 'text-success' : 'text-danger';
+        months.forEach((monthName, index) => {
+            // ---------------------------------------------------------
+            // 1. حساب Time to Fill (Average Days)
+            // الشرط: الوظائف التي تم إغلاقها (Filled) في هذا الشهر
+            // ---------------------------------------------------------
+            const filledInMonth = recReqs.filter(r => {
+                if (r.status !== 'Filled' || !r.filled_date) return false;
+                const d = new Date(r.filled_date);
+                return d.getMonth() === index && d.getFullYear() == selectedYear;
+            });
 
-        const filledJobs = myReqs.filter(r => r.status === 'Filled' && r.filled_date && r.target_date);
-        let onTimeJobs = 0;
-        filledJobs.forEach(r => { if (new Date(r.filled_date) <= new Date(r.target_date)) onTimeJobs++; });
-        const timeToFillRate = filledJobs.length > 0 ? Math.round((onTimeJobs / filledJobs.length) * 100) : 0;
-        const ttfColor = timeToFillRate >= 85 ? 'text-success' : 'text-danger';
+            let avgTimeFill = 0;
+            if (filledInMonth.length > 0) {
+                let totalDays = 0;
+                filledInMonth.forEach(r => {
+                    const start = new Date(r.start_date); // Requisition Approved Date
+                    const end = new Date(r.filled_date);  // Onboarding/Filled Date
+                    const diff = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+                    totalDays += diff;
+                });
+                avgTimeFill = Math.round(totalDays / filledInMonth.length);
+            }
 
-        const hiredCount = myCands.filter(c => c.status === 'Hired').length;
-        const pendingOfferCount = myCands.filter(c => c.status === 'Job Offer Phase').length;
-        const totalOffers = hiredCount + pendingOfferCount; 
-        const offerRate = totalOffers > 0 ? Math.round((hiredCount / totalOffers) * 100) : 0;
-        const offerColor = offerRate >= 90 ? 'text-success' : 'text-danger';
+            // ---------------------------------------------------------
+            // 2. حساب Offer Acceptance Rate (%)
+            // المعادلة: Accepted Offers / Total Offers Extended
+            // ---------------------------------------------------------
+            // سنعتمد على المرشحين الذين تم تعيينهم في هذا الشهر (كمؤشر)
+            const hiresInMonth = recCands.filter(c => {
+                if (c.status !== 'Hired') return false;
+                // نحتاج تاريخ التعيين، سنستخدم تاريخ الوظيفة المرتبطة كبديل دقيق
+                const req = systemData.requisitions.find(r => r.req_id === c.req_id);
+                if (!req || !req.filled_date) return false;
+                const d = new Date(req.filled_date);
+                return d.getMonth() === index && d.getFullYear() == selectedYear;
+            });
 
-        const interviewStages = ['HR Interview', 'Technical Interview', 'Job Offer Phase', 'Hired'];
-        const totalInterviews = myCands.filter(c => interviewStages.includes(c.status) || c.status === 'Rejected').length;
-        const interviewRatio = totalInterviews > 0 ? Math.round((hiredCount / totalInterviews) * 100) : 0;
-        const ivColor = interviewRatio >= 10 ? 'text-success' : 'text-danger';
+            // بما أننا لا نملك تاريخ "رفض العرض" بدقة، سنستخدم نسبة تقريبية
+            // Total Offers = Hired + Pending/Rejected (in Offer Stage)
+            // للتبسيط والدقة في السكريبت الحالي: سنعتبر الـ Total Offers هم الـ Hires + نسبة افتراضية للعروض المرفوضة
+            // أو يمكن حسابها بدقة لو كان هناك حقل Offer Date.
+            // هنا المعادلة: Hired / (Hired + Rejected Offers)
+            // *ملاحظة:* لتحسين الدقة، سنقوم بحساب العروض المقبولة (Hired) ونقسمها على (Hired + Rejected at Offer Stage)
+            
+            const rejectedOffersInMonth = recCands.filter(c => c.status === 'Rejected' && c.rejection_reason === 'Offer Rejected'); // افتراضي
+            const totalOffers = hiresInMonth.length + rejectedOffersInMonth.length;
+            
+            // تصحيح للمعادلة لضمان عدم القسمة على صفر (سنفترض ان كل Hired هو عرض مقبول)
+            let offerRate = 0;
+            if (totalOffers > 0) {
+                offerRate = Math.round((hiresInMonth.length / totalOffers) * 100);
+            } else if (hiresInMonth.length > 0) {
+                offerRate = 100; // لو مفيش رفض، يبقى النسبة 100%
+            }
 
-        chartsData.push({
-            id: `chart-rec-${index}`,
-            label: recruiter,
-            data: [hiringPlanRate, timeToFillRate, offerRate, interviewRatio]
+
+            // ---------------------------------------------------------
+            // 3. حساب Interview to Hire Ratio (%)
+            // المعادلة: Hires / Total Interviews
+            // ---------------------------------------------------------
+            // سنحسب المقابلات التي تمت في هذا الشهر
+            const interviewsInMonth = recCands.filter(c => {
+                if (!c.interview_date) return false;
+                const d = new Date(c.interview_date);
+                return d.getMonth() === index && d.getFullYear() == selectedYear;
+            });
+
+            let interviewRatio = 0;
+            if (interviewsInMonth.length > 0) {
+                // عدد التعيينات (الناتجة عن هذه المقابلات - تقريبياً نستخدم تعيينات الشهر)
+                interviewRatio = Math.round((hiresInMonth.length / interviewsInMonth.length) * 100);
+            }
+
+            // ---------------------------------------------------------
+            // إخفاء الشهور الفارغة تماماً
+            // ---------------------------------------------------------
+            if (filledInMonth.length === 0 && hiresInMonth.length === 0 && interviewsInMonth.length === 0) return;
+            hasData = true;
+
+            // ---------------------------------------------------------
+            // تحديد الألوان (Target vs Actual)
+            // ---------------------------------------------------------
+            // Time to Fill: الأقل هو الأفضل
+            const ttfColor = (avgTimeFill <= targets.timeToFill && avgTimeFill > 0) ? 'text-success' : (avgTimeFill === 0 ? 'text-muted' : 'text-danger');
+            
+            // Offer Rate: الأعلى هو الأفضل
+            const offerColor = offerRate >= targets.offerAcceptance ? 'text-success' : 'text-danger';
+
+            // Interview Ratio: الأقرب للتارجت هو الأفضل (أو الأعلى)
+            const ivColor = interviewRatio >= targets.interviewRatio ? 'text-success' : 'text-warning';
+
+            monthlyRowsHTML += `
+                <tr style="font-size: 0.8rem;">
+                    <td class="fw-bold bg-light text-dark-blue">${monthName}</td>
+                    
+                    <td class="text-center">
+                        <div class="d-flex flex-column">
+                            <span class="${ttfColor} fw-bold" style="font-size: 0.9rem;">${avgTimeFill > 0 ? avgTimeFill + ' Days' : '-'}</span>
+                            <small class="text-muted" style="font-size: 0.6rem;">Target: < ${targets.timeToFill} Days</small>
+                        </div>
+                    </td>
+
+                    <td class="text-center">
+                        <div class="d-flex flex-column">
+                            <span class="${offerColor} fw-bold" style="font-size: 0.9rem;">${offerRate}%</span>
+                            <small class="text-muted" style="font-size: 0.6rem;">Target: ${targets.offerAcceptance}%</small>
+                        </div>
+                    </td>
+
+                    <td class="text-center">
+                        <div class="d-flex flex-column">
+                            <span class="${ivColor} fw-bold" style="font-size: 0.9rem;">${interviewRatio}%</span>
+                            <small class="text-muted" style="font-size: 0.6rem;">Target: ${targets.interviewRatio}%</small>
+                        </div>
+                    </td>
+                </tr>
+            `;
         });
 
-        htmlContent += `
-        <div class="col-md-6 mb-4">
+        if (!hasData) {
+            monthlyRowsHTML = `<tr><td colspan="4" class="text-center text-muted py-4 small">No data recorded for ${selectedYear}</td></tr>`;
+        }
+
+        // بناء الكارت
+        const col = document.createElement('div');
+        col.className = 'col-md-6 mb-4'; 
+        
+        col.innerHTML = `
             <div class="card h-100 shadow-sm border-0">
-                <div class="card-header bg-white border-bottom-0 pb-0 pt-3">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h6 class="fw-bold text-dark-blue mb-0"><i class="fas fa-user-tie me-2 bg-light p-2 rounded-circle"></i> ${recruiter}</h6>
-                        <span class="badge bg-light text-muted border">Scorecard</span>
-                    </div>
+                <div class="card-header">
+                    <span class="badge bg-light text-dark shadow-sm" style="border-radius: 6px;">Scorecard</span>
+                    <div><i class="fas fa-user-circle fa-lg me-2"></i> ${recruiter}</div>
                 </div>
-                <div class="card-body pt-2">
-                    <div class="row align-items-center">
-                        <div class="col-md-7">
-                            <div class="row g-2">
-                                <div class="col-6"><div class="p-2 border rounded bg-light"><small class="text-muted d-block" style="font-size:0.65rem">Hiring Plan (90%)</small><span class="fw-bold ${hpColor}">${hiringPlanRate}%</span></div></div>
-                                <div class="col-6"><div class="p-2 border rounded bg-light"><small class="text-muted d-block" style="font-size:0.65rem">Time to Fill (85%)</small><span class="fw-bold ${ttfColor}">${timeToFillRate}%</span></div></div>
-                                <div class="col-6"><div class="p-2 border rounded bg-light"><small class="text-muted d-block" style="font-size:0.65rem">Offer Acc. (90%)</small><span class="fw-bold ${offerColor}">${offerRate}%</span></div></div>
-                                <div class="col-6"><div class="p-2 border rounded bg-light"><small class="text-muted d-block" style="font-size:0.65rem">Interv. Ratio (10%)</small><span class="fw-bold ${ivColor}">${interviewRatio}%</span></div></div>
-                            </div>
-                        </div>
-                        <div class="col-md-5">
-                            <div style="height: 160px; width: 100%;">
-                                <canvas id="chart-rec-${index}"></canvas>
-                            </div>
-                        </div>
+
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height: 280px; overflow-y: auto;">
+                        <table class="table table-bordered mb-0 align-middle text-center">
+                            <thead class="bg-light text-secondary sticky-top" style="z-index: 2;">
+                                <tr style="font-size: 0.7rem;">
+                                    <th style="width: 15%;">Month</th>
+                                    <th style="width: 28%;">Time to Fill<br>(Avg Days)</th>
+                                    <th style="width: 28%;">Offer Acceptance<br>(Rate %)</th>
+                                    <th style="width: 29%;">Interview to Hire<br>(Ratio %)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${monthlyRowsHTML}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
-        </div>`;
+        `;
+        
+        container.appendChild(col);
     });
-
-    container.innerHTML = htmlContent;
-
-    chartsData.forEach(item => {
-        const ctx = document.getElementById(item.id).getContext('2d');
-        new Chart(ctx, {
-            type: 'radar',
-            data: {
-                labels: ['Hiring Plan', 'Time Fill', 'Offers', 'Interviews'],
-                datasets: [{
-                    label: 'Actual %',
-                    data: item.data,
-                    backgroundColor: 'rgba(27, 21, 74, 0.2)', 
-                    borderColor: '#1B154A',
-                    pointBackgroundColor: '#C4161C', 
-                    pointBorderColor: '#fff',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    r: {
-                        angleLines: { display: true },
-                        suggestedMin: 0,
-                        suggestedMax: 100,
-                        ticks: { display: false } 
-                    }
-                },
-                plugins: { legend: { display: false } }
-            }
-        });
-    });
-    
-    
 }
 
 function renderMonthlyChart(allReqs) {
