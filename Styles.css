@@ -110,6 +110,51 @@ body {
 
 .card-body { padding: 1.5rem; }
 
+/* --- تنسيق رؤوس الكروت الصغيرة الملونة --- */
+.card-header-small { 
+    padding: 0.75rem 1rem; 
+    font-size: 0.9rem; 
+    border-bottom: 0; 
+}
+
+/* --- تنسيق خاص لكروت الـ Recruiters (توسيط مثالي + محاذاة دقيقة) --- */
+#recruiter-kpi-container .card-header {
+    background-color: #2c3e50 !important; /* لون أزرق غامق */
+    color: white !important;
+    font-weight: bold;
+    font-size: 1rem;
+    padding: 0.8rem 1rem;
+    position: relative; /* ضروري لعمل البادج */
+    
+    /* ✅ إعدادات التوسيط الشاملة */
+    display: flex;
+    justify-content: center; /* يضع الاسم في منتصف الشريط أفقياً */
+    align-items: center;     /* يضع الاسم في منتصف الشريط رأسياً */
+}
+
+/* 1. ضبط الاسم والأيقونة ليكونوا قطعة واحدة متناسقة */
+#recruiter-kpi-container .card-header > div:first-child {
+    display: flex;
+    align-items: center; /* محاذاة الأيقونة مع النص رأسياً */
+    gap: 10px;           /* مسافة بين الأيقونة والاسم */
+    margin: 0 !important; /* ⚠️ إزالة أي هوامش قد تسبب عدم التوازن */
+    padding: 0 !important;
+}
+
+/* 2. ضبط كلمة Scorecard في أقصى اليسار وفي المنتصف رأسياً */
+#recruiter-kpi-container .card-header .badge {
+    position: absolute !important;
+    left: 15px !important;
+    top: 50%;
+    transform: translateY(-50%); /* 🎯 سر التوسيط الرأسي الدقيق */
+    margin: 0 !important;
+}
+
+#recruiter-kpi-container .card {
+    border: 1px solid #2c3e50; 
+    height: 100%; 
+}
+
 /* Left Accent Borders (Retained but softer) */
 .border-left-blue { border-left: 5px solid var(--acrow-navy); }
 .border-left-red { border-left: 5px solid var(--acrow-red); }
