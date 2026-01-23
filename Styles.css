@@ -51,33 +51,30 @@ body {
     font-size: 1.4rem;
 }
 
+/* =========================================
+   تعديل التابات لتكون في صف واحد دائماً
+   ========================================= */
+/* --- الحل الجذري لمشكلة قص آخر تابة --- */
+
+/* 1. ضمان أن الحاوية تسمح بالتمرير بمرونة */
 .nav-pills {
-    background: #ffffff;
-    padding: 6px;
-    border-radius: 16px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-    display: inline-flex;
-    margin-bottom: 1.5rem;
+    /* تأكد أن هذه الخصائص موجودة في الكلاس الأساسي، وهنا نضيف عليها */
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 5px; /* مساحة صغيرة أسفل التابات عشان السكرول بار */
 }
 
-.nav-pills .nav-link {
-    color: var(--text-secondary);
-    font-weight: 600;
-    border-radius: 12px;
-    padding: 10px 24px;
-    transition: all 0.2s ease;
-}
-
-.nav-pills .nav-link:hover {
-    background-color: #f8fafc;
-    color: var(--acrow-navy);
-}
-
-.nav-pills .nav-link.active {
-    background-color: var(--acrow-navy) !important;
-    color: #fff !important;
-    box-shadow: 0 8px 15px -3px rgba(27, 21, 74, 0.25);
-    transform: translateY(-1px);
+/* 2. إنشاء عنصر وهمي صلب في نهاية القائمة */
+.nav-pills::after {
+    content: "";
+    display: block;
+    
+    /* هذا هو السر: عرض ثابت غير قابل للانكماش */
+    min-width: 60px; 
+    flex: 0 0 60px; /* Grow: 0, Shrink: 0, Basis: 60px */
+    
+    height: 1px; /* ارتفاع وهمي */
 }
 
 /* =========================================
