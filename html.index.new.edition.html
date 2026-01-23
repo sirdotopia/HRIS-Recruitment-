@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACROW Talent Acquisition ATS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="Styles.css">
+    <style>
+        /* --- Custom Typography --- */
+        .navbar-brand { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; letter-spacing: 0.5px; }
+        
+        /* --- Modern Nav Pills Styling --- */
+        .nav-pills .nav-link { color: #555; font-weight: 600; border-radius: 50px; padding: 10px 20px; margin-right: 10px; transition: all 0.3s ease; }
+        .nav-pills .nav-link:hover { background-color: #e9ecef; color: #1B154A; }
+        .nav-pills .nav-link.active { background-color: #1B154A !important; color: #fff !important; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+
+        /* --- SLA & Status Indicators --- */
+        .sla-badge { font-size: 0.65rem; font-weight: 700; padding: 3px 8px; border-radius: 12px; text-transform: uppercase; }
+        .sla-on-track { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
+        .sla-overdue { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+
+        /* --- Compact Dashboard Specifics --- */
+        .gauge-compact { height: 100px !important; margin-bottom: 0 !important; }
+        .kpi-title-small { font-size: 0.75rem; margin-bottom: 5px; }
+        .kpi-value-small { font-size: 1.2rem; bottom: 0; }
+        .card-header-small { padding: 0.75rem 1rem; font-size: 0.9rem; }
+
+        /* --- Navbar User Section --- */
+        .navbar-user-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-left: auto;
+        }
+
+        .user-display {
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .btn-logout {
+            background-color: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .btn-logout:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            color: white;
+        }
+
+        .btn-logout:active {
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+
+        /* --- Delete Button Styling --- */
+        .btn-delete-sm {
+            padding: 4px 8px;
+            font-size: 12px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-delete-sm:hover {
+            transform: scale(1.05);
+        }
+
+        /* --- Toast Container --- */
+        #toastContainer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            max-width: 400px;
+        }
+
+        /* --- Navbar Logo --- */
+        .navbar-logo {
+            height: 45px;
+            margin-right: 15px;
+        }
+    </style>
+</head>
+<body class="bg-light">
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark-blue shadow-sm py-3">
+        <div class="container-fluid">
+            <a class="navbar-brand d-flex align-items-center" href="#">
+                <img src="images/logo.png" alt="ACROW Logo" class="navbar-logo">
+                <div class="d-flex flex-column flex-md-row align-items-start align-items-md-baseline">
+                    <span class="fw-bold fs-4 text-uppercase tracking-wide" style="display: none;">ACROW</span>
+                    <span class="d-none d-md-inline mx-2 text-white-50" style="display: none;">|</span>
+                    <span class="fs-6 text-light fw-light opacity-75" style="display: none;">Talent Management HRIS</span>
+                </div>
+            </a>
+            <!-- Logout Button and User Info will be inserted here by JavaScript -->
+            <div class="navbar-user-section" id="navbarUserSection"></div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        
+        <ul class="nav nav-pills mb-4 bg-white p-2 rounded shadow-sm d-inline-flex" id="hrisTab" role="tablist">
+            <li class="nav-item"><button class="nav-link active" id="dashboard-tab" data-bs-toggle="pill" data-bs-target="#dashboard"><i class="fas fa-chart-line me-2"></i>Dashboard</button></li>
+            <li class="nav-item"><button class="nav-link" id="req-tab" data-bs-toggle="pill" data-bs-target="#requisition"><i class="fas fa-briefcase me-2"></i>Job Requisition</button></li>
+            <li class="nav-item"><button class="nav-link" id="ats-tab" data-bs-toggle="pill" data-bs-target="#ats"><i class="fas fa-user-check me-2"></i>ATS & Pipeline</button></li>
+            <li class="nav-item"><button class="nav-link" id="ref-tab" data-bs-toggle="pill" data-bs-target="#referral"><i class="fas fa-handshake me-2"></i>Referrals</button></li>
+            <li class="nav-item"><button class="nav-link" id="emp-tab" data-bs-toggle="pill" data-bs-target="#employee"><i class="fas fa-users me-2"></i>Employee Master Data</button></li>
+            <li class="nav-item"><button class="nav-link" id="lnd-tab" data-bs-toggle="pill" data-bs-target="#lnd"><i class="fas fa-graduation-cap me-2"></i>L&D / Training</button></li>
+            <li class="nav-item"><button class="nav-link" id="perf-tab" data-bs-toggle="pill" data-bs-target="#performance"><i class="fas fa-tachometer-alt me-2"></i>Performance</button></li>
+            <li class="nav-item">
+                <button class="nav-link" id="pos-status-tab" data-bs-toggle="pill" data-bs-target="#pos-status" onclick="renderPositionsStatus()">
+                    <i class="fas fa-list-alt me-2"></i>Positions Status
+                </button>
+            </li>
+            <li class="nav-item"><button class="nav-link" id="audit-tab" data-bs-toggle="pill" data-bs-target="#audit"><i class="fas fa-shield-alt me-2"></i>Audit & Compliance</button></li>
+        </ul>
+
+        <div class="tab-content p-4 bg-white border border-top-0 rounded shadow-sm" id="hrisTabContent">
+            <!-- Tab content will be populated by original script.js -->
+        </div>
+    </div>
+
+    <!-- Toast Container for Notifications -->
+    <div id="toastContainer"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    
+    <!-- Enhanced Session and Toast Management -->
+    <script src="js.session.management.new.edition.js"></script>
+    
+    <!-- Original Dashboard and Data Management -->
+    <script src="script.js"></script>
+
+    <script>
+        /**
+         * Integration Script
+         * Ensures all components work together
+         */
+
+        // Override the original sendData function to use authenticatedFetch
+        const originalSendData = window.sendData;
+        window.sendData = function(type, payload, user = "Hassan") {
+            authenticatedFetch('/api/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type, payload, user })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.status === 'success') {
+                    showToast('Data saved successfully', 'success');
+                    loadData(); 
+                    // Close modals
+                    ['addCandidateModal', 'candidateProfileModal', 'addTrainingModal', 'addPerformanceModal', 'emailTemplateModal'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) { 
+                            const modal = bootstrap.Modal.getInstance(el); 
+                            if (modal) modal.hide(); 
+                        }
+                    });
+                } else {
+                    showToast(data.message || "Error saving data", 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error sending data:', error);
+                showToast('Error saving data', 'danger');
+            });
+        };
+
+        // Override the original loadData function to use authenticatedFetch
+        const originalLoadData = window.loadData;
+        window.loadData = function() {
+            authenticatedFetch('/api/data')
+                .then(response => response.json())
+                .then(data => {
+                    systemData = data;
+                    
+                    // Ensure arrays exist
+                    if(!systemData.training_programs) systemData.training_programs = [];
+                    if(!systemData.performance_reviews) systemData.performance_reviews = [];
+                    if(!systemData.referrals) systemData.referrals = []; 
+                    
+                    // Render All Views
+                    renderDashboard(); 
+                    renderRequisitionsDropdown();
+                    renderPipeline();
+                    renderAssessmentDropdown();
+                    renderEmployees();
+                    renderTraining();     
+                    renderPerformance();  
+                    renderAuditLog();
+                    renderReferrals();
+                    renderPositionsStatus();
+                })
+                .catch(error => {
+                    console.error('Error loading data:', error);
+                    showToast('Error loading data', 'danger');
+                });
+        };
+
+        // Override downloadReport to use authenticatedFetch
+        const originalDownloadReport = window.downloadReport;
+        window.downloadReport = function(type) {
+            authenticatedFetch(`/api/export/${type}`)
+                .then(response => {
+                    if (!response.ok) throw new Error('Export failed');
+                    return response.blob();
+                })
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${type}_report_${new Date().toISOString().split('T')[0]}.xlsx`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    showToast(`${type} report downloaded successfully`, 'success');
+                })
+                .catch(error => {
+                    console.error('Download error:', error);
+                    showToast('Error downloading report', 'danger');
+                });
+        };
+
+        // Initialize everything on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check session first
+            fetch('/api/session-check')
+                .then(response => {
+                    if (!response.ok) {
+                        window.location.href = '/login';
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.authenticated) {
+                        // Session is valid, initialize the app
+                        initializeSessionManagement();
+                        addLogoutButton();
+                        loadData();
+                    } else {
+                        window.location.href = '/login';
+                    }
+                })
+                .catch(error => {
+                    console.error('Session check error:', error);
+                    window.location.href = '/login';
+                });
+        });
+    </script>
+</body>
+</html>
