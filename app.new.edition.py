@@ -136,7 +136,7 @@ def login():
         
         user = None
         for u in users:
-            if u.get('username') == username:
+            if u.get('username').lower() == username.lower():
                 user = u
                 break
 
